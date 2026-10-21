@@ -5,7 +5,7 @@ A brief becomes a typed `VideoPlan`, then deterministic HTML/GSAP, then an MP4 �
 
 Auteur is built on one observation: Claude Opus 5.5 is not a video model. It writes code that a renderer turns into video. The quality comes from taste, constraints, and iteration — not from asking a model to one-shot a 60-second film. Auteur externalizes those constraints into templates and a critic loop, so a relay with ordinary models can produce work that looks art-directed.
 
-> Status: v0.2. Local Studio, a lightweight Windows desktop shell, four scene layouts, Chinese typography, Windows voiceover, advisory VLM review, and per-scene incremental rendering. Four real films generated through an OpenAI-compatible relay, all at QA 100/100. Generated ambient score + SFX, normalized to −16 LUFS. Benchmark 01 is a public ToDopa concept study, not a blind Opus parity test.
+> Status: v0.2. Local Studio with English/Chinese UI, a lightweight Windows desktop shell, four scene layouts, Chinese typography, Windows voiceover, advisory VLM review, and per-scene incremental rendering. Four real films generated through an OpenAI-compatible relay, all at QA 100/100. Generated ambient score + SFX, normalized to −16 LUFS. Benchmark 01 is a public ToDopa concept study, not a blind Opus parity test.
 
 <p align="center">
   <img src="docs/arc-real.jpg" width="49%" alt="Arc — product launch, dusk" />
@@ -48,9 +48,17 @@ The Studio is a local web app. It binds to `127.0.0.1` and has no auth; do not e
 
 Render mode: **Full** keeps fade/push transitions; **Scenes** caches each scene clip and re-renders only changed scenes, with hard cuts.
 
+### Languages
+
+The Studio top bar and the desktop launcher both have an **EN / 中文** switch. The choice is stored locally, and the launcher passes its language to the Studio when it opens it. Switching does not touch the plan or render. Brief, generated copy, and QA issue text stay in the language produced by the pipeline.
+
+![Auteur Studio in Chinese](docs/media/studio-zh.png)
+
 ### Desktop shell (Windows, optional)
 
 A lightweight Tauri 2 shell wraps the production Studio. It is a launcher, not a self-contained runtime: it starts `studio/server.ts` from a project folder with the local Node, waits for port 4310, then navigates to it. Closing the window stops the server it started; if port 4310 was already serving, it opens that server and leaves it running.
+
+![Auteur Studio launcher](docs/media/tauri-launcher.png)
 
 ![Auteur Studio in the desktop shell](docs/media/tauri-studio.png)
 
@@ -319,5 +327,7 @@ pnpm run make -- --brief briefs/arc.md --out arc
 ```
 
 模型只输出受约束的 `VideoPlan`，不写 HTML/CSS；模板、布局、审片和音频负责质量下限。中文示例见 `examples/plan-zh.json`，混合布局见 `examples/plan-layouts.json`。
+
+Studio 顶栏和桌面壳右上角都有 **EN / 中文** 切换，选择会记住，并由启动器传给 Studio。简报、生成内容和 QA 问题文本不会被翻译。
 
 桌面壳（可选）：在仓库根目录执行 `pnpm exec tauri build --bundles nsis`，安装包生成在 `src-tauri/target/release/bundle/nsis/`。它是轻量启动器，只负责启动本机已有的项目，需要 Node、FFmpeg、Chrome、WebView2 和已执行 `pnpm install` 的项目目录，不是自带运行时的独立发行版。

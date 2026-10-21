@@ -28,10 +28,23 @@
         padding: 28px;
       }
       .shell { width: min(620px, 100%); }
-      .mark { display: flex; align-items: center; gap: 9px; margin-bottom: 32px; }
+      .topline { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 32px; }
+      .mark { display: flex; align-items: center; gap: 9px; }
       .mark strong { font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
       .mark span { color: var(--faint); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; }
       .mark svg { color: var(--accent); }
+      .lang-switch {
+        display: flex; align-items: center; gap: 2px; padding: 2px;
+        border: 1px solid var(--line); border-radius: 5px; background: var(--ink);
+      }
+      .lang-switch button {
+        height: 22px; min-width: 30px; padding: 0 7px; border: 0; border-radius: 3px;
+        background: transparent; color: var(--faint); font: 600 9px/1 ui-monospace, Consolas, monospace;
+        letter-spacing: .02em; cursor: pointer;
+      }
+      .lang-switch button:hover { color: var(--text); }
+      .lang-switch button.active { background: rgba(139, 211, 255, .14); color: var(--accent); }
+      .lang-switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
       h1 { font-size: 26px; line-height: 1.15; letter-spacing: -.035em; font-weight: 600; margin: 0 0 8px; }
       .lede { color: var(--muted); font-size: 13px; line-height: 1.55; margin: 0 0 26px; max-width: 500px; }
       .panel { border-top: 1px solid var(--line); padding-top: 20px; }
@@ -67,76 +80,197 @@
   </head>
   <body>
     <div class="shell">
-      <div class="mark">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <rect x="3" y="5" width="18" height="14" rx="2"></rect>
-          <path d="M3 9h18M7 5l2-3M12 5l2-3M17 5l2-3"></path>
-        </svg>
-        <strong>Auteur</strong><span>Studio</span>
+      <div class="topline">
+        <div class="mark">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+            <path d="M3 9h18M7 5l2-3M12 5l2-3M17 5l2-3"></path>
+          </svg>
+          <strong>Auteur</strong><span>Studio</span>
+        </div>
+        <div class="lang-switch" role="group" aria-label="Language / 语言">
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="zh">中文</button>
+        </div>
       </div>
 
-      <h1>Open your local Studio.</h1>
-      <p class="lede">This lightweight desktop shell starts the Auteur Studio server from an existing project folder. Rendering stays local; no cloud account is involved.</p>
+      <h1 data-i18n="title">Open your local Studio.</h1>
+      <p class="lede" data-i18n="lede">This lightweight desktop shell starts the Auteur Studio server from an existing project folder. Rendering stays local; no cloud account is involved.</p>
 
       <div class="panel">
-        <label for="project">Project folder</label>
+        <label for="project" data-i18n="label.project">Project folder</label>
         <input id="project" type="text" placeholder="D:\path\to\auteur" spellcheck="false" autocomplete="off" />
         <div class="row">
-          <button id="start" class="primary" type="button">Start Studio</button>
-          <button id="retry" type="button">Check again</button>
+          <button id="start" class="primary" type="button" data-i18n="button.start">Start Studio</button>
+          <button id="retry" type="button" data-i18n="button.retry">Check again</button>
         </div>
-        <div id="status" class="status">Checking for a running Studio…</div>
+        <div id="status" class="status"></div>
       </div>
 
       <div class="requirements">
-        <div><strong>Node 22+</strong>Runs the Studio API and pipeline.</div>
-        <div><strong>FFmpeg</strong>Renders and mixes audio.</div>
-        <div><strong>Chrome</strong>HyperFrames capture.</div>
+        <div><strong>Node 22+</strong><span data-i18n="req.node">Runs the Studio API and pipeline.</span></div>
+        <div><strong>FFmpeg</strong><span data-i18n="req.ffmpeg">Renders and mixes audio.</span></div>
+        <div><strong>Chrome</strong><span data-i18n="req.chrome">HyperFrames capture.</span></div>
       </div>
-      <p class="fine">Run <code>pnpm install</code> once in the project folder. This installer does not bundle Node, FFmpeg, Chrome, or the project itself. If the server is already running, the shell opens it directly.</p>
+      <p class="fine" data-i18n-html="fine"></p>
     </div>
 
     <script>
+      const dictionaries = {
+        en: {
+          title: "Open your local Studio.",
+          lede: "This lightweight desktop shell starts the Auteur Studio server from an existing project folder. Rendering stays local; no cloud account is involved.",
+          "label.project": "Project folder",
+          "button.start": "Start Studio",
+          "button.retry": "Check again",
+          "req.node": "Runs the Studio API and pipeline.",
+          "req.ffmpeg": "Renders and mixes audio.",
+          "req.chrome": "HyperFrames capture.",
+          "fine": "Run <code>pnpm install</code> once in the project folder. This installer does not bundle Node, FFmpeg, Chrome, or the project itself. If the server is already running, the shell opens it directly.",
+          "status.checking": "Checking for a running Studio…",
+          "status.opening": "Studio is already running. Opening…",
+          "status.noServer": "No Studio server detected. Enter the project folder.",
+          "status.starting": "Starting Studio · {seconds}s",
+          "status.enterProject": "Enter the Auteur project folder first.",
+          "status.bridge": "Tauri bridge unavailable. Open this app through the installed Auteur Studio shell.",
+        },
+        zh: {
+          title: "打开本地 Studio。",
+          lede: "这个轻量桌面壳会从已有的项目目录启动 Auteur Studio 服务。渲染全在本地，不需要云端账号。",
+          "label.project": "项目目录",
+          "button.start": "启动 Studio",
+          "button.retry": "重新检查",
+          "req.node": "运行 Studio API 和渲染管线。",
+          "req.ffmpeg": "渲染并混合音频。",
+          "req.chrome": "HyperFrames 画面捕获。",
+          "fine": "请先在项目目录执行一次 <code>pnpm install</code>。安装包不内置 Node、FFmpeg、Chrome 或项目本身。如果服务已在运行，桌面壳会直接打开它。",
+          "status.checking": "正在检查已运行的 Studio…",
+          "status.opening": "Studio 已在运行，正在打开…",
+          "status.noServer": "未检测到 Studio 服务。请输入项目目录。",
+          "status.starting": "正在启动 Studio · {seconds}s",
+          "status.enterProject": "请先输入 Auteur 项目目录。",
+          "status.bridge": "Tauri 桥接不可用。请通过安装后的 Auteur Studio 桌面壳打开。",
+        },
+      };
+
+      const zhErrors = [
+        [/does not look like an Auteur project/, "这个目录不是 Auteur 项目。请选择包含 studio/server.ts 和 package.json 的目录。"],
+        [/node_modules is missing/, "缺少 node_modules。请先在项目目录运行 pnpm install，再试一次。"],
+        [/Node\.js was not found/, "未找到 Node.js。请安装 Node 22+，并确保它在 PATH 中。"],
+        [/Node\.js was found but could not run/, "Node.js 存在但无法运行。请安装 Node 22+ 后重试。"],
+        [/FFmpeg was not found/, "未找到 FFmpeg。请安装 FFmpeg，并确保它在 PATH 中。"],
+        [/FFmpeg was found but could not run/, "FFmpeg 存在但无法运行。请重新安装 FFmpeg。"],
+        [/Could not start the Studio server/, "无法启动 Studio 服务。请检查项目目录和运行日志。"],
+        [/Studio did not start within 66 seconds/, "Studio 在 66 秒内未能启动。请检查项目目录下的 runs/studio-launcher.log。"],
+        [/Studio start task failed/, "Studio 启动任务失败。请重试。"],
+      ];
+
       const tauri = window.__TAURI__;
       const input = document.getElementById("project");
       const status = document.getElementById("status");
       const start = document.getElementById("start");
       const retry = document.getElementById("retry");
+      let lang = detectLanguage();
       let timer = null;
+      let statusState = { key: "status.checking", kind: "", vars: {} };
 
-      input.value = localStorage.getItem("auteur.project") || "";
-
-      function setStatus(text, kind = "") {
-        status.textContent = text;
-        status.className = `status ${kind}`.trim();
+      function detectLanguage() {
+        try {
+          const stored = localStorage.getItem("auteur.launcher.lang");
+          if (stored === "en" || stored === "zh") return stored;
+        } catch {}
+        return (navigator.language || "").toLowerCase().startsWith("zh") ? "zh" : "en";
       }
 
-      function startClock(label) {
+      function t(key) {
+        return dictionaries[lang][key] ?? dictionaries.en[key] ?? key;
+      }
+
+      function format(template, vars = {}) {
+        return template.replace(/\{(\w+)\}/g, (match, name) =>
+          name in vars ? String(vars[name]) : match,
+        );
+      }
+
+      function localizeError(message) {
+        if (lang !== "zh") return message;
+        for (const [pattern, replacement] of zhErrors) {
+          if (pattern.test(message)) return replacement;
+        }
+        return message;
+      }
+
+      function renderStatus() {
+        if (statusState.raw !== undefined) {
+          status.textContent = localizeError(statusState.raw);
+        } else {
+          status.textContent = format(t(statusState.key), statusState.vars);
+        }
+        status.className = `status ${statusState.kind}`.trim();
+      }
+
+      function setStatus(key, kind = "", vars = {}) {
+        statusState = { key, kind, vars };
+        renderStatus();
+      }
+
+      function setStatusRaw(raw, kind = "") {
+        statusState = { raw, kind };
+        renderStatus();
+      }
+
+      function applyLanguage(next) {
+        lang = next;
+        try { localStorage.setItem("auteur.launcher.lang", lang); } catch {}
+        document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+        document.querySelectorAll("[data-i18n]").forEach((element) => {
+          element.textContent = t(element.dataset.i18n);
+        });
+        document.querySelectorAll("[data-i18n-html]").forEach((element) => {
+          element.innerHTML = t(element.dataset.i18nHtml);
+        });
+        document.querySelectorAll(".lang-switch button").forEach((button) => {
+          const active = button.dataset.lang === lang;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+        renderStatus();
+      }
+
+      function startClock(labelKey) {
         const started = Date.now();
         if (timer) clearInterval(timer);
+        setStatus(labelKey, "", { seconds: 0 });
         timer = setInterval(() => {
-          setStatus(`${label} · ${Math.floor((Date.now() - started) / 1000)}s`);
+          setStatus(labelKey, "", { seconds: Math.floor((Date.now() - started) / 1000) });
         }, 1000);
       }
 
       async function invoke(command, args = {}) {
-        if (!tauri || !tauri.core) {
-          throw new Error("Tauri bridge unavailable. Open this app through the installed Auteur Studio shell.");
-        }
+        if (!tauri || !tauri.core) throw new Error("__bridge__");
         return tauri.core.invoke(command, args);
+      }
+
+      function showError(error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message === "__bridge__") {
+          setStatus("status.bridge", "error");
+        } else {
+          setStatusRaw(message, "error");
+        }
       }
 
       async function openExisting() {
         try {
-          const opened = await invoke("open_existing");
+          const opened = await invoke("open_existing", { lang });
           if (opened) {
-            setStatus("Studio is already running. Opening…", "ok");
+            setStatus("status.opening", "ok");
             return true;
           }
-          setStatus("No Studio server detected. Enter the project folder.");
+          setStatus("status.noServer");
           return false;
         } catch (error) {
-          setStatus(String(error), "error");
+          showError(error);
           return false;
         }
       }
@@ -145,30 +279,36 @@
         if (await openExisting()) return;
       }
 
+      document.querySelectorAll(".lang-switch button").forEach((button) => {
+        button.addEventListener("click", () => applyLanguage(button.dataset.lang));
+      });
+
       start.addEventListener("click", async () => {
         const project = input.value.trim();
         if (!project) {
-          setStatus("Enter the Auteur project folder first.", "error");
+          setStatus("status.enterProject", "error");
           input.focus();
           return;
         }
-        localStorage.setItem("auteur.project", project);
+        try { localStorage.setItem("auteur.project", project); } catch {}
         start.disabled = true;
         retry.disabled = true;
-        startClock("Starting Studio");
+        startClock("status.starting");
         try {
-          await invoke("start_studio", { project });
+          await invoke("start_studio", { project, lang });
         } catch (error) {
           if (timer) clearInterval(timer);
-          setStatus(String(error), "error");
+          showError(error);
           start.disabled = false;
           retry.disabled = false;
         }
       });
 
-      retry.addEventListener("click", () => boot());
+      retry.addEventListener("click", () => void boot());
 
-      boot();
+      try { input.value = localStorage.getItem("auteur.project") || ""; } catch {}
+      applyLanguage(lang);
+      void boot();
     </script>
   </body>
 </html>

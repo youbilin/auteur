@@ -153,12 +153,65 @@ button {
 }
 
 .top-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   color: var(--faint);
   font-size: 9px;
   letter-spacing: 0.13em;
   text-transform: uppercase;
   padding-left: 12px;
   border-left: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.top-local {
+  color: var(--faint);
+}
+
+html[lang="zh-CN"] .top-local {
+  letter-spacing: 0.06em;
+}
+
+.lang-switch {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #0c1015;
+}
+
+.lang-switch button {
+  height: 20px;
+  min-width: 28px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.lang-switch button:hover {
+  color: var(--text);
+}
+
+.lang-switch button.active {
+  background: rgba(139, 211, 255, 0.14);
+  color: var(--accent);
+}
+
+.lang-switch button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .status-dot {
@@ -1092,7 +1145,7 @@ select {
 @media (max-width: 700px) {
   .wordmark span,
   .top-muted,
-  .top-meta {
+  .top-local {
     display: none;
   }
   .run-switcher {

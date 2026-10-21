@@ -15,11 +15,39 @@ import {
   Wand2,
   X,
 } from "lucide-react";
+import { detectLang, translate, type Lang, type MessageKey } from "./i18n.js";
 
 type Ratio = "16:9" | "9:16";
 type Quality = "draft" | "looks" | "delivery";
 type Layout = "auto" | "device" | "data" | "type" | "hook";
 type RenderMode = "full" | "scenes";
+type BusyKey = "generate" | "plan" | "render" | "qa" | "fix" | "voice" | "save";
+
+const busyLabels: Record<BusyKey, MessageKey> = {
+  generate: "busy.generate",
+  plan: "busy.plan",
+  render: "busy.render",
+  qa: "busy.qa",
+  fix: "busy.fix",
+  voice: "busy.voice",
+  save: "busy.save",
+};
+
+const doneLabels: Record<BusyKey, MessageKey> = {
+  generate: "done.generate",
+  plan: "done.plan",
+  render: "done.render",
+  qa: "done.qa",
+  fix: "done.fix",
+  voice: "done.voice",
+  save: "done.save",
+};
+
+const verdictLabels: Record<QA["verdict"], MessageKey> = {
+  pass: "verdict.pass",
+  fix: "verdict.fix",
+  fail: "verdict.fail",
+};
 
 interface ModelInfo {
   id: string;
@@ -161,14 +189,14 @@ function shorten(value: string, max = 56): string {
   return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 }
 
-function IssueRow({ issue }: { issue: QAIssue }) {
+function IssueRow({ issue, globalLabel }: { issue: QAIssue; globalLabel: string }) {
   return (
     <div className="issue-row">
       <span className={`issue-dot ${issue.severity}`} />
       <div>
         <div className="issue-meta">
           <span className="issue-code">{issue.code}</span>
-          <span>{issue.atMs ? fmtDuration(issue.atMs) : "global"}</span>
+          <span>{issue.atMs ? fmtDuration(issue.atMs) : globalLabel}</span>
           <span>{issue.critic}</span>
         </div>
         <div className="issue-message">{issue.message}</div>
@@ -180,17 +208,19 @@ function IssueRow({ issue }: { issue: QAIssue }) {
 function FileRow({
   label,
   path,
+  copyLabel,
   onCopy,
 }: {
   label: string;
   path: string;
+  copyLabel: string;
   onCopy: (value: string) => void;
 }) {
   return (
     <div className="file-row">
       <span className="file-label">{label}</span>
       <code title={path}>{shorten(path, 44)}</code>
-      <button type="button" className="icon-button" onClick={() => onCopy(path)} aria-label={`Copy ${label} path`}>
+      <button type="button" className="icon-button" onClick={() => onCopy(path)} aria-label={copyLabel}>
         <Copy size={13} />
       </button>
     </div>
@@ -198,6 +228,7 @@ function FileRow({
 }
 
 export function App() {
+  const [lang, setLang] = useState<Lang>(detectLang);
   const [status, setStatus] = useState<Status | null>(null);
   const [briefs, setBriefs] = useState<BriefFile[]>([]);
   const [runs, setRuns] = useState<RunSummary[]>([]);
@@ -210,7 +241,7 @@ export function App() {
   const [renderMode, setRenderMode] = useState<RenderMode>("full");
   const [voiceText, setVoiceText] = useState("");
   const [jsonDraft, setJsonDraft] = useState("");
-  const [busy, setBusy] = useState<string | null>(null);
+  const [busy, setBusy] = useState<BusyKey | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
   const [error, setError] = useState("");
@@ -218,6 +249,34 @@ export function App() {
   const [videoNonce, setVideoNonce] = useState(0);
   const [useFixed, setUseFixed] = useState(false);
   const [videoError, setVideoError] = useState(false);
+
+  const t = (key: MessageKey, vars?: Record<string, string | number>) =>
+    translate(lang, key, vars);
+
+  const changeLang = (next: Lang) => {
+    if (next === lang) return;
+    setLang(next);
+    setError("");
+    setNotice("");
+  };
+
+  useEffect(() => {
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+    try {
+      window.localStorage.setItem("auteur.studio.lang", lang);
+    } catch {
+      // Persistence is best-effort; the toggle still works for this session.
+    }
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("lang")) {
+        url.searchParams.delete("lang");
+        window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+      }
+    } catch {
+      // The language already applied; cleanup is only cosmetic.
+    }
+  }, [lang]);
 
   const loadRun = useCallback(async (id: string) => {
     const data = await request<RunDetail>(`/api/runs/${encodeURIComponent(id)}`);
@@ -289,35 +348,43 @@ export function App() {
   const modelsCount = status?.models?.length ?? 0;
   const elapsed = startedAt ? Math.max(0, Math.floor((now - startedAt) / 1000)) : 0;
 
+  const sceneCountLabel = (count: number) =>
+    t(count === 1 ? "plan.sceneOne" : "plan.scenes", { count });
+  const calloutCountLabel = (count: number) =>
+    t(count === 1 ? "plan.calloutOne" : "plan.callouts", { count });
+  const issueCountLabel = (count: number) =>
+    t(count === 1 ? "qa.issueOne" : "qa.issues", { count });
+  const modelCountLabel = (count: number) =>
+    t(count === 1 ? "top.modelOne" : "top.models", { count });
+  const engineModelCountLabel = (count: number) =>
+    t(count === 1 ? "engine.modelOneAvailable" : "engine.modelsAvailable", { count });
+
   const videoUrl = useMemo(() => {
     if (!currentRun?.hasVideo) return "";
     const base = useFixed && currentRun.hasFixed ? currentRun.fixedVideoUrl : currentRun.videoUrl;
     return withVersion(base, currentRun.videoUpdatedAt + videoNonce);
   }, [currentRun, useFixed, videoNonce]);
 
-  const runBusy = useCallback(
-    async (label: string, action: () => Promise<void>) => {
-      setBusy(label);
-      setStartedAt(Date.now());
-      setNow(Date.now());
-      setError("");
-      setNotice("");
-      try {
-        await action();
-        setNotice(`${label} complete`);
-      } catch (caught) {
-        setError(caught instanceof Error ? caught.message : String(caught));
-      } finally {
-        setBusy(null);
-        setStartedAt(null);
-      }
-    },
-    [],
-  );
+  const runBusy = async (key: BusyKey, action: () => Promise<void>) => {
+    setBusy(key);
+    setStartedAt(Date.now());
+    setNow(Date.now());
+    setError("");
+    setNotice("");
+    try {
+      await action();
+      setNotice(t(doneLabels[key]));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught));
+    } finally {
+      setBusy(null);
+      setStartedAt(null);
+    }
+  };
 
   const generateFilm = () =>
-    runBusy("Generating film", async () => {
-      if (!brief.trim()) throw new Error("Write a brief first.");
+    runBusy("generate", async () => {
+      if (!brief.trim()) throw new Error(t("error.writeBrief"));
       const data = await post<{ run: RunSummary }>("/api/make", {
         brief,
         ratio,
@@ -330,8 +397,8 @@ export function App() {
     });
 
   const planOnly = () =>
-    runBusy("Writing plan", async () => {
-      if (!brief.trim()) throw new Error("Write a brief first.");
+    runBusy("plan", async () => {
+      if (!brief.trim()) throw new Error(t("error.writeBrief"));
       const data = await post<{ run: RunSummary }>("/api/plan", {
         brief,
         ratio,
@@ -342,41 +409,41 @@ export function App() {
     });
 
   const render = () =>
-    runBusy("Rendering", async () => {
-      if (!currentId) throw new Error("Generate or select a run first.");
+    runBusy("render", async () => {
+      if (!currentId) throw new Error(t("error.selectRun"));
       await post("/api/render", { runId: currentId, quality, mode: renderMode });
       await loadRun(currentId);
       await refreshRuns();
     });
 
   const review = () =>
-    runBusy("Running QA", async () => {
-      if (!currentId) throw new Error("Generate or select a run first.");
+    runBusy("qa", async () => {
+      if (!currentId) throw new Error(t("error.selectRun"));
       await post("/api/qa", { runId: currentId });
       await loadRun(currentId);
       await refreshRuns();
     });
 
   const fix = () =>
-    runBusy("Fixing", async () => {
-      if (!currentId) throw new Error("Generate or select a run first.");
+    runBusy("fix", async () => {
+      if (!currentId) throw new Error(t("error.selectRun"));
       await post("/api/fix", { runId: currentId, quality, mode: renderMode });
       await loadRun(currentId);
       await refreshRuns();
     });
 
   const addVoice = () =>
-    runBusy("Generating voiceover", async () => {
-      if (!currentId) throw new Error("Generate a video first.");
-      if (!voiceText.trim()) throw new Error("Write voiceover text first.");
+    runBusy("voice", async () => {
+      if (!currentId) throw new Error(t("error.generateVideo"));
+      if (!voiceText.trim()) throw new Error(t("error.writeVoice"));
       await post("/api/voice", { runId: currentId, text: voiceText });
       await loadRun(currentId);
       await refreshRuns();
     });
 
   const savePlan = () =>
-    runBusy("Saving plan", async () => {
-      if (!currentId) throw new Error("Select a run first.");
+    runBusy("save", async () => {
+      if (!currentId) throw new Error(t("error.selectRunFirst"));
       const parsed = JSON.parse(jsonDraft) as unknown;
       await post("/api/plan/save", { runId: currentId, plan: parsed });
       await loadRun(currentId);
@@ -386,9 +453,9 @@ export function App() {
   const copy = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value);
-      setNotice("Path copied");
+      setNotice(t("notice.copied"));
     } catch {
-      setError("Clipboard is unavailable in this browser.");
+      setError(t("error.clipboard"));
     }
   };
 
@@ -397,7 +464,8 @@ export function App() {
     if (file) setBrief(file.content);
   };
 
-  const videoLabel = useFixed && currentRun?.hasFixed ? "fixed" : "original";
+  const videoLabel =
+    useFixed && currentRun?.hasFixed ? t("preview.fixed") : t("preview.original");
 
   return (
     <div className="app">
@@ -415,9 +483,9 @@ export function App() {
                 setError(caught instanceof Error ? caught.message : String(caught));
               });
             }}
-            aria-label="Select a run"
+            aria-label={t("top.selectRun")}
           >
-            {runs.length === 0 ? <option value="">No runs</option> : null}
+            {runs.length === 0 ? <option value="">{t("top.noRuns")}</option> : null}
             {runs.map((run) => (
               <option key={run.id} value={run.id}>
                 {run.brand} · {run.id}
@@ -430,18 +498,38 @@ export function App() {
             onClick={() => void refreshRuns().catch((caught: unknown) => {
               setError(caught instanceof Error ? caught.message : String(caught));
             })}
-            aria-label="Refresh runs"
-            title="Refresh runs"
+            aria-label={t("top.refreshRuns")}
+            title={t("top.refreshRuns")}
           >
             <RefreshCw size={13} />
           </button>
         </div>
-        <div className="top-status" title={status?.error ?? "Local relay"}>
+        <div className="top-status" title={status?.error ?? t("top.localRelay")}>
           <span className={`status-dot ${status?.ok && modelsCount > 0 ? "ok" : "bad"}`} />
-          <span>{status?.ok ? `${modelsCount} models` : "Relay unavailable"}</span>
-          <span className="top-muted">{directorModel ? shorten(directorModel.model, 34) : "no model"}</span>
+          <span>{status?.ok ? modelCountLabel(modelsCount) : t("top.relayUnavailable")}</span>
+          <span className="top-muted">{directorModel ? shorten(directorModel.model, 34) : t("top.noModel")}</span>
         </div>
-        <div className="top-meta">Local · no cloud</div>
+        <div className="top-meta">
+          <div className="lang-switch" role="group" aria-label={t("language.label")}>
+            <button
+              type="button"
+              className={lang === "en" ? "active" : ""}
+              aria-pressed={lang === "en"}
+              onClick={() => changeLang("en")}
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              className={lang === "zh" ? "active" : ""}
+              aria-pressed={lang === "zh"}
+              onClick={() => changeLang("zh")}
+            >
+              中文
+            </button>
+          </div>
+          <span className="top-local">{t("top.localNoCloud")}</span>
+        </div>
       </header>
 
       {busy ? (
@@ -454,7 +542,7 @@ export function App() {
         <div className="banner error" role="alert">
           <AlertTriangle size={14} />
           <span>{error}</span>
-          <button type="button" className="icon-button" onClick={() => setError("")} aria-label="Dismiss error">
+          <button type="button" className="icon-button" onClick={() => setError("")} aria-label={t("banner.dismissError")}>
             <X size={13} />
           </button>
         </div>
@@ -464,7 +552,7 @@ export function App() {
         <div className="banner notice" role="status">
           <Check size={14} />
           <span>{notice}</span>
-          <button type="button" className="icon-button" onClick={() => setNotice("")} aria-label="Dismiss message">
+          <button type="button" className="icon-button" onClick={() => setNotice("")} aria-label={t("banner.dismissMessage")}>
             <X size={13} />
           </button>
         </div>
@@ -473,8 +561,8 @@ export function App() {
       <main className="workspace">
         <aside className="left">
           <div className="section-head">
-            <span>Brief</span>
-            <span className="section-hint">⌘↵ generate</span>
+            <span>{t("brief.title")}</span>
+            <span className="section-hint">{t("brief.shortcut")}</span>
           </div>
           <textarea
             className="brief-input"
@@ -486,16 +574,16 @@ export function App() {
                 void generateFilm();
               }
             }}
-            placeholder="Describe the product, audience, tone, look, and three scenes."
-            aria-label="Product brief"
+            placeholder={t("brief.placeholder")}
+            aria-label={t("brief.aria")}
           />
           <div className="preset-row">
             <select
               value=""
               onChange={(event) => importBrief(event.target.value)}
-              aria-label="Load a brief preset"
+              aria-label={t("brief.presetAria")}
             >
-              <option value="">Load brief preset…</option>
+              <option value="">{t("brief.preset")}</option>
               {briefs.map((file) => (
                 <option key={file.id} value={file.id}>
                   {file.title}
@@ -506,8 +594,8 @@ export function App() {
 
           <div className="field-grid">
             <label>
-              <span className="field-label">Ratio</span>
-              <div className="segmented" role="group" aria-label="Aspect ratio">
+              <span className="field-label">{t("field.ratio")}</span>
+              <div className="segmented" role="group" aria-label={t("field.ratioAria")}>
                 {(["16:9", "9:16"] as const).map((value) => (
                   <button
                     key={value}
@@ -521,91 +609,91 @@ export function App() {
               </div>
             </label>
             <label>
-              <span className="field-label">Layout</span>
+              <span className="field-label">{t("field.layout")}</span>
               <select value={layout} onChange={(event) => setLayout(event.target.value as Layout)}>
-                <option value="auto">Auto</option>
-                <option value="device">Device</option>
-                <option value="data">Data</option>
-                <option value="type">Type</option>
-                <option value="hook">Hook</option>
+                <option value="auto">{t("layout.auto")}</option>
+                <option value="device">{t("layout.device")}</option>
+                <option value="data">{t("layout.data")}</option>
+                <option value="type">{t("layout.type")}</option>
+                <option value="hook">{t("layout.hook")}</option>
               </select>
             </label>
             <label>
-              <span className="field-label">Quality</span>
+              <span className="field-label">{t("field.quality")}</span>
               <select value={quality} onChange={(event) => setQuality(event.target.value as Quality)}>
-                <option value="draft">Draft</option>
-                <option value="looks">Looks</option>
-                <option value="delivery">Delivery</option>
+                <option value="draft">{t("quality.draft")}</option>
+                <option value="looks">{t("quality.looks")}</option>
+                <option value="delivery">{t("quality.delivery")}</option>
               </select>
             </label>
             <label>
-              <span className="field-label">Render mode</span>
+              <span className="field-label">{t("field.renderMode")}</span>
               <select value={renderMode} onChange={(event) => setRenderMode(event.target.value as RenderMode)}>
-                <option value="full">Full</option>
-                <option value="scenes">Scenes</option>
+                <option value="full">{t("mode.full")}</option>
+                <option value="scenes">{t("mode.scenes")}</option>
               </select>
             </label>
           </div>
 
           <div className="primary-actions">
             <button type="button" className="button primary" onClick={() => void generateFilm()} disabled={Boolean(busy)}>
-              {busy === "Generating film" ? <Loader2 size={14} className="spin" /> : <Wand2 size={14} />}
-              {busy === "Generating film" ? `Working ${elapsed}s` : "Generate film"}
+              {busy === "generate" ? <Loader2 size={14} className="spin" /> : <Wand2 size={14} />}
+              {busy === "generate" ? t("action.working", { seconds: elapsed }) : t("action.generateFilm")}
             </button>
             <button type="button" className="button ghost" onClick={() => void planOnly()} disabled={Boolean(busy)}>
               <Braces size={14} />
-              Plan only
+              {t("action.planOnly")}
             </button>
           </div>
-          <p className="hint">The model writes a typed plan. The template owns layout, type, motion, and audio.</p>
+          <p className="hint">{t("hint.plan")}</p>
 
           <div className="rule" />
 
           <div className="section-head">
-            <span>Voiceover</span>
-            <span className="section-hint">SAPI · local</span>
+            <span>{t("voice.title")}</span>
+            <span className="section-hint">{t("voice.local")}</span>
           </div>
           <textarea
             className="voice-input"
             value={voiceText}
             onChange={(event) => setVoiceText(event.target.value)}
-            placeholder="One or two sentences. Optional."
-            aria-label="Voiceover text"
+            placeholder={t("voice.placeholder")}
+            aria-label={t("voice.aria")}
           />
           <button type="button" className="button ghost wide" onClick={() => void addVoice()} disabled={Boolean(busy) || !currentRun?.hasVideo}>
-            {busy === "Generating voiceover" ? <Loader2 size={14} className="spin" /> : <Mic size={14} />}
-            {currentRun?.hasVoice ? "Regenerate voiceover" : "Generate voiceover"}
+            {busy === "voice" ? <Loader2 size={14} className="spin" /> : <Mic size={14} />}
+            {currentRun?.hasVoice ? t("action.regenerateVoice") : t("action.generateVoice")}
           </button>
 
           <div className="rule" />
 
           <div className="section-head">
-            <span>Engine</span>
-            <span className="section-hint">local</span>
+            <span>{t("engine.title")}</span>
+            <span className="section-hint">{t("engine.local")}</span>
           </div>
           <div className="engine-line">
             <span className={`status-dot ${status?.ok && modelsCount > 0 ? "ok" : "bad"}`} />
-            <span>{status?.ok ? `${modelsCount} models available` : status?.error ?? "Relay unavailable"}</span>
+            <span>{status?.ok ? engineModelCountLabel(modelsCount) : status?.error ?? t("top.relayUnavailable")}</span>
           </div>
           <div className="engine-line muted">
-            <span>Director</span>
-            <code>{directorModel?.id ?? "unassigned"}</code>
+            <span>{t("engine.director")}</span>
+            <code>{directorModel?.id ?? t("engine.unassigned")}</code>
           </div>
           <div className="engine-line muted">
-            <span>Vision</span>
-            <code>{status?.models?.find((model) => model.images === "yes")?.id ?? "deterministic only"}</code>
+            <span>{t("engine.vision")}</span>
+            <code>{status?.models?.find((model) => model.images === "yes")?.id ?? t("engine.deterministicOnly")}</code>
           </div>
-          <p className="hint">Keys stay in `.env.local`. The Studio server binds to 127.0.0.1.</p>
+          <p className="hint">{t("hint.keys")}</p>
         </aside>
 
         <section className="center">
           <div className="center-head">
             <div>
-              <div className="eyebrow">Plan</div>
-              <h1>{plan?.brand?.name ?? "No plan yet"}</h1>
+              <div className="eyebrow">{t("plan.eyebrow")}</div>
+              <h1>{plan?.brand?.name ?? t("plan.none")}</h1>
             </div>
             <div className="center-meta">
-              {plan ? `${scenes.length} scenes · ${fmtDuration(total)} · ${plan.ratio}` : "waiting for a brief"}
+              {plan ? `${sceneCountLabel(scenes.length)} · ${fmtDuration(total)} · ${plan.ratio}` : t("plan.waiting")}
             </div>
           </div>
 
@@ -625,7 +713,7 @@ export function App() {
                       {(scene.screen?.blocks ?? []).map((block, blockIndex) => (
                         <span key={`${block.kind}-${blockIndex}`}>{block.kind}</span>
                       ))}
-                      {(scene.callouts?.length ?? 0) > 0 ? <span>{scene.callouts?.length} callout</span> : null}
+                      {(scene.callouts?.length ?? 0) > 0 ? <span>{calloutCountLabel(scene.callouts?.length ?? 0)}</span> : null}
                     </div>
                     <div className="scene-bar">
                       <span style={{ width: `${Math.max(2, (scene.durationMs / total) * 100)}%` }} />
@@ -637,11 +725,11 @@ export function App() {
           ) : (
             <div className="empty-center">
               <Film size={22} />
-              <strong>No plan yet</strong>
-              <span>Write a brief on the left, then generate a plan or the whole film.</span>
+              <strong>{t("plan.none")}</strong>
+              <span>{t("plan.emptyHint")}</span>
               <button type="button" className="button ghost" onClick={() => void planOnly()} disabled={Boolean(busy)}>
                 <Braces size={14} />
-                Generate plan
+                {t("action.generatePlan")}
               </button>
             </div>
           )}
@@ -649,7 +737,7 @@ export function App() {
           {runs.length > 1 ? (
             <div className="runs-block">
               <div className="section-head">
-                <span>Recent runs</span>
+                <span>{t("runs.recent")}</span>
                 <span className="section-hint">{runs.length}</span>
               </div>
               <div className="runs-table">
@@ -666,9 +754,9 @@ export function App() {
                   >
                     <span className="run-name">{run.brand}<em>{run.id}</em></span>
                     <span>{run.ratio}</span>
-                    <span>{run.scenes} scenes</span>
+                    <span>{sceneCountLabel(run.scenes)}</span>
                     <span className={`run-score ${run.verdict ?? "none"}`}>{run.score ?? "—"}</span>
-                    <span className="run-time">{new Date(run.createdAt).toLocaleDateString()}</span>
+                    <span className="run-time">{new Date(run.createdAt).toLocaleDateString(lang === "zh" ? "zh-CN" : "en-US")}</span>
                   </button>
                 ))}
               </div>
@@ -678,20 +766,20 @@ export function App() {
           {plan ? (
             <details className="json-editor">
               <summary>
-                <span>Edit plan JSON</span>
-                <span className="section-hint">advanced</span>
+                <span>{t("plan.editJson")}</span>
+                <span className="section-hint">{t("plan.advanced")}</span>
               </summary>
               <textarea
                 value={jsonDraft}
                 onChange={(event) => setJsonDraft(event.target.value)}
                 spellCheck={false}
-                aria-label="Plan JSON"
+                aria-label={t("plan.jsonAria")}
               />
               <div className="json-actions">
-                <span className="hint">Saving recompiles the composition; render to see changes.</span>
+                <span className="hint">{t("hint.savePlan")}</span>
                 <button type="button" className="button ghost" onClick={() => void savePlan()} disabled={Boolean(busy)}>
-                  {busy === "Saving plan" ? <Loader2 size={14} className="spin" /> : <Check size={14} />}
-                  Save plan
+                  {busy === "save" ? <Loader2 size={14} className="spin" /> : <Check size={14} />}
+                  {t("action.savePlan")}
                 </button>
               </div>
             </details>
@@ -700,15 +788,15 @@ export function App() {
 
         <aside className="right">
           <div className="preview-head">
-            <div className="eyebrow">Preview</div>
+            <div className="eyebrow">{t("preview.title")}</div>
             <div className="preview-tools">
               {currentRun?.hasFixed ? (
                 <div className="segmented small">
                   <button type="button" className={!useFixed ? "active" : ""} onClick={() => setUseFixed(false)}>
-                    Original
+                    {t("preview.original")}
                   </button>
                   <button type="button" className={useFixed ? "active" : ""} onClick={() => setUseFixed(true)}>
-                    Fixed
+                    {t("preview.fixed")}
                   </button>
                 </div>
               ) : null}
@@ -729,80 +817,109 @@ export function App() {
             ) : (
               <div className="empty-video">
                 <Play size={20} />
-                <span>{currentRun?.hasPlan ? "Render to preview" : "Generate a plan first"}</span>
+                <span>{currentRun?.hasPlan ? t("preview.render") : t("preview.generatePlan")}</span>
               </div>
             )}
-            {videoError ? <div className="video-error">Video could not load. Check the render log.</div> : null}
+            {videoError ? <div className="video-error">{t("preview.error")}</div> : null}
           </div>
 
           <div className="qa-block">
             <div className="qa-head">
               <div className="eyebrow">QA</div>
-              {qa ? <span className={`verdict ${qa.verdict}`}>{qa.verdict}</span> : <span className="verdict none">not run</span>}
-              {qa ? <span className="issue-count">{qa.issues.length} issues</span> : null}
+              {qa ? <span className={`verdict ${qa.verdict}`}>{t(verdictLabels[qa.verdict])}</span> : <span className="verdict none">{t("verdict.none")}</span>}
+              {qa ? <span className="issue-count">{issueCountLabel(qa.issues.length)}</span> : null}
               <span className="qa-score">{qa ? qa.score : "—"}</span>
             </div>
             {qa ? (
               <>
                 <div className="rubric-row">
                   <span>DOM {qa.rubric.dom}</span>
-                  <span>Media {qa.rubric.media}</span>
+                  <span>{t("qa.media")} {qa.rubric.media}</span>
                   <span>HF {qa.rubric.hyperframes ?? "—"}</span>
                   <span>VLM {qa.rubric.vlm ?? "—"}</span>
                 </div>
                 <div className="issue-list">
                   {qa.issues.length === 0 ? (
-                    <div className="qa-empty"><Check size={14} /> No issues. Human review still required.</div>
+                    <div className="qa-empty"><Check size={14} /> {t("qa.empty")}</div>
                   ) : (
-                    qa.issues.map((issue) => <IssueRow issue={issue} key={issue.id} />)
+                    qa.issues.map((issue) => <IssueRow issue={issue} globalLabel={t("issue.global")} key={issue.id} />)
                   )}
                 </div>
               </>
             ) : (
               <div className="qa-empty">
                 <ShieldCheck size={14} />
-                {currentRun?.hasVideo ? "Run QA to inspect the current film." : "Render a film, then run QA."}
+                {currentRun?.hasVideo ? t("qa.inspect") : t("qa.renderFirst")}
               </div>
             )}
           </div>
 
           <div className="action-row">
             <button type="button" className="button" onClick={() => void render()} disabled={Boolean(busy) || !currentRun?.hasPlan}>
-              {busy === "Rendering" ? <Loader2 size={14} className="spin" /> : <Play size={14} />}
-              Render
+              {busy === "render" ? <Loader2 size={14} className="spin" /> : <Play size={14} />}
+              {t("action.render")}
             </button>
             <button type="button" className="button" onClick={() => void review()} disabled={Boolean(busy) || !currentRun?.hasVideo}>
-              {busy === "Running QA" ? <Loader2 size={14} className="spin" /> : <ShieldCheck size={14} />}
-              QA
+              {busy === "qa" ? <Loader2 size={14} className="spin" /> : <ShieldCheck size={14} />}
+              {t("action.qa")}
             </button>
             <button type="button" className="button" onClick={() => void fix()} disabled={Boolean(busy) || !currentRun?.hasQa}>
-              {busy === "Fixing" ? <Loader2 size={14} className="spin" /> : <Wrench size={14} />}
-              Fix
+              {busy === "fix" ? <Loader2 size={14} className="spin" /> : <Wrench size={14} />}
+              {t("action.fix")}
             </button>
           </div>
 
           <div className="files-block">
             <div className="section-head">
-              <span>Files</span>
-              <span className="section-hint">{currentId ?? "no run"}</span>
+              <span>{t("files.title")}</span>
+              <span className="section-hint">{currentId ?? t("files.noRun")}</span>
             </div>
             {currentId ? (
               <>
-                <FileRow label="video" path={`runs/${currentId}/out/video.mp4`} onCopy={copy} />
-                <FileRow label="plan" path={`runs/${currentId}/plan.json`} onCopy={copy} />
-                {currentRun?.hasQa ? <FileRow label="qa" path={`runs/${currentId}/qa.md`} onCopy={copy} /> : null}
-                {currentRun?.hasVoice ? <FileRow label="voice" path={`runs/${currentId}/voice.wav`} onCopy={copy} /> : null}
-                <FileRow label="html" path={`runs/${currentId}/composition/index.html`} onCopy={copy} />
+                <FileRow
+                  label={t("files.video")}
+                  path={`runs/${currentId}/out/video.mp4`}
+                  copyLabel={t("files.copyPath", { label: t("files.video") })}
+                  onCopy={copy}
+                />
+                <FileRow
+                  label={t("files.plan")}
+                  path={`runs/${currentId}/plan.json`}
+                  copyLabel={t("files.copyPath", { label: t("files.plan") })}
+                  onCopy={copy}
+                />
+                {currentRun?.hasQa ? (
+                  <FileRow
+                    label={t("files.qa")}
+                    path={`runs/${currentId}/qa.md`}
+                    copyLabel={t("files.copyPath", { label: t("files.qa") })}
+                    onCopy={copy}
+                  />
+                ) : null}
+                {currentRun?.hasVoice ? (
+                  <FileRow
+                    label={t("files.voice")}
+                    path={`runs/${currentId}/voice.wav`}
+                    copyLabel={t("files.copyPath", { label: t("files.voice") })}
+                    onCopy={copy}
+                  />
+                ) : null}
+                <FileRow
+                  label={t("files.html")}
+                  path={`runs/${currentId}/composition/index.html`}
+                  copyLabel={t("files.copyPath", { label: t("files.html") })}
+                  onCopy={copy}
+                />
               </>
             ) : (
-              <div className="files-empty">No run selected.</div>
+              <div className="files-empty">{t("files.empty")}</div>
             )}
           </div>
 
           {qa?.notes?.length ? (
             <details className="notes-block">
               <summary>
-                <span>Notes</span>
+                <span>{t("notes.title")}</span>
                 <span className="section-hint">{qa.notes.length}</span>
               </summary>
               {qa.notes.map((note, index) => (

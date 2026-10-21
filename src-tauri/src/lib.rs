@@ -15,23 +15,33 @@ fn port_open() -> bool {
     TcpStream::connect_timeout(&address, Duration::from_millis(300)).is_ok()
 }
 
-fn navigate(window: &WebviewWindow) -> Result<(), String> {
-    let url = Url::parse("http://127.0.0.1:4310").map_err(|error| error.to_string())?;
+fn navigate(window: &WebviewWindow, lang: Option<&str>) -> Result<(), String> {
+    let suffix = match lang {
+        Some("zh") => "?lang=zh",
+        Some("en") => "?lang=en",
+        _ => "",
+    };
+    let url = Url::parse(&format!("http://127.0.0.1:4310/{suffix}")).map_err(|error| error.to_string())?;
     window.navigate(url).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
-fn open_existing(window: WebviewWindow) -> Result<bool, String> {
+fn open_existing(window: WebviewWindow, lang: Option<String>) -> Result<bool, String> {
     if port_open() {
-        navigate(&window)?;
+        navigate(&window, lang.as_deref())?;
         return Ok(true);
     }
     Ok(false)
 }
 
-fn start_blocking(window: WebviewWindow, app: AppHandle, project: String) -> Result<(), String> {
+fn start_blocking(
+    window: WebviewWindow,
+    app: AppHandle,
+    project: String,
+    lang: Option<String>,
+) -> Result<(), String> {
     if port_open() {
-        return navigate(&window);
+        return navigate(&window, lang.as_deref());
     }
 
     let root = PathBuf::from(&project);
@@ -100,7 +110,7 @@ fn start_blocking(window: WebviewWindow, app: AppHandle, project: String) -> Res
 
     for _ in 0..220 {
         if port_open() {
-            return navigate(&window);
+            return navigate(&window, lang.as_deref());
         }
         thread::sleep(Duration::from_millis(300));
     }
@@ -120,8 +130,9 @@ async fn start_studio(
     window: WebviewWindow,
     app: AppHandle,
     project: String,
+    lang: Option<String>,
 ) -> Result<(), String> {
-    tauri::async_runtime::spawn_blocking(move || start_blocking(window, app, project))
+    tauri::async_runtime::spawn_blocking(move || start_blocking(window, app, project, lang))
         .await
         .map_err(|error| format!("Studio start task failed: {error}"))?
 }

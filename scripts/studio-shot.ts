@@ -15,7 +15,7 @@ desktop.on("console", (message) => {
 desktop.on("pageerror", (error) => errors.push(error.message));
 await desktop.goto("http://127.0.0.1:4310", { waitUntil: "networkidle" });
 if (targetRun) {
-  await desktop.selectOption('select[aria-label="Select a run"]', targetRun);
+  await desktop.selectOption(".run-switcher select", targetRun);
   await desktop.waitForTimeout(800);
 }
 await desktop.waitForTimeout(1200);
@@ -27,7 +27,7 @@ mobile.on("console", (message) => {
 });
 await mobile.goto("http://127.0.0.1:4310", { waitUntil: "networkidle" });
 if (targetRun) {
-  await mobile.selectOption('select[aria-label="Select a run"]', targetRun);
+  await mobile.selectOption(".run-switcher select", targetRun);
   await mobile.waitForTimeout(600);
 }
 await mobile.waitForTimeout(800);
