@@ -24,9 +24,9 @@ No issues found.
 
 ## Notes
 
-- lint: This HTML composition file has 312 lines. Smaller sub-compositions are easier to read, iterate on, and diff.
 - lint: <section id="scene-0"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.
 - lint: <section id="scene-1"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.
 - lint: <section id="scene-2"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.
+- VLM review skipped: no registry.
 
 Contact sheet: `runs\pulse-real\frames\contact-sheet.jpg`

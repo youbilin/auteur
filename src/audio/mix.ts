@@ -12,6 +12,8 @@ export interface AudioConfig {
   loudnessRange: number;
   bedLevel: number;
   sfxLevel: number;
+  voiceLevel: number;
+  bedDuck: number;
   fadeInMs: number;
   fadeOutMs: number;
   whooshLeadMs: number;
@@ -24,6 +26,8 @@ const DEFAULT_CONFIG: AudioConfig = {
   loudnessRange: 11,
   bedLevel: 0.9,
   sfxLevel: 0.9,
+  voiceLevel: 1,
+  bedDuck: 0.42,
   fadeInMs: 600,
   fadeOutMs: 900,
   whooshLeadMs: 120,
@@ -144,6 +148,7 @@ export interface AudioResult {
   output: string;
   bed: string;
   sfx?: string;
+  voice?: string;
   events: SfxEvent[];
   config: AudioConfig;
 }
@@ -154,6 +159,7 @@ export interface AttachAudioOptions {
   silentVideo: string;
   outputVideo: string;
   suffix?: string;
+  voiceFile?: string;
   config?: AudioConfig;
 }
 
@@ -182,37 +188,57 @@ export function attachAudio(options: AttachAudioOptions): AudioResult {
   }
 
   const target = options.outputVideo;
+  const hasVoice = Boolean(options.voiceFile && fs.existsSync(options.voiceFile));
+  const args: string[] = ["-i", options.silentVideo, "-i", bed];
+  const filters: string[] = [];
+  const mixInputs: string[] = [];
+
+  const bedGain = config.bedLevel * (hasVoice ? config.bedDuck : 1);
+  filters.push(`[1:a]volume=${bedGain.toFixed(3)}[bed]`);
+  mixInputs.push("[bed]");
+
+  let inputIndex = 2;
   if (sfxPath) {
-    ffmpeg(
-      [
-        "-i", options.silentVideo,
-        "-i", bed,
-        "-i", sfxPath,
-        "-filter_complex",
-        `[1:a]volume=${config.bedLevel}[bed];[2:a]volume=${config.sfxLevel}[sfx];` +
-          `[bed][sfx]amix=inputs=2:duration=first:normalize=0,` +
-          `loudnorm=I=${config.targetLufs}:TP=${config.truePeakDb}:LRA=${config.loudnessRange}[a]`,
-        "-map", "0:v:0", "-map", "[a]",
-        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
-        "-shortest", "-movflags", "+faststart", target,
-      ],
-      "final audio mix",
-    );
-  } else {
-    ffmpeg(
-      [
-        "-i", options.silentVideo,
-        "-i", bed,
-        "-filter_complex",
-        `[1:a]volume=${config.bedLevel},loudnorm=I=${config.targetLufs}:TP=${config.truePeakDb}:LRA=${config.loudnessRange}[a]`,
-        "-map", "0:v:0", "-map", "[a]",
-        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
-        "-shortest", "-movflags", "+faststart", target,
-      ],
-      "final audio mix",
-    );
+    args.push("-i", sfxPath);
+    filters.push(`[${inputIndex}:a]volume=${config.sfxLevel}[sfx]`);
+    mixInputs.push("[sfx]");
+    inputIndex += 1;
   }
 
-  log.info(`Audio: ${events.length} SFX event(s) · ${path.relative(process.cwd(), target)}`);
-  return { output: target, bed, ...(sfxPath ? { sfx: sfxPath } : {}), events, config };
+  if (hasVoice && options.voiceFile) {
+    args.push("-i", options.voiceFile);
+    filters.push(
+      `[${inputIndex}:a]aformat=channel_layouts=stereo,adelay=300|300,volume=${config.voiceLevel}[voice]`,
+    );
+    mixInputs.push("[voice]");
+  }
+
+  filters.push(
+    `${mixInputs.join("")}amix=inputs=${mixInputs.length}:duration=first:normalize=0,` +
+      `loudnorm=I=${config.targetLufs}:TP=${config.truePeakDb}:LRA=${config.loudnessRange}[a]`,
+  );
+
+  ffmpeg(
+    [
+      ...args,
+      "-filter_complex",
+      filters.join(";"),
+      "-map", "0:v:0", "-map", "[a]",
+      "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
+      "-shortest", "-movflags", "+faststart", target,
+    ],
+    "final audio mix",
+  );
+
+  log.info(
+    `Audio: ${events.length} SFX event(s)${hasVoice ? " + voiceover" : ""} · ${path.relative(process.cwd(), target)}`,
+  );
+  return {
+    output: target,
+    bed,
+    ...(sfxPath ? { sfx: sfxPath } : {}),
+    ...(hasVoice && options.voiceFile ? { voice: options.voiceFile } : {}),
+    events,
+    config,
+  };
 }

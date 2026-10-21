@@ -30,6 +30,17 @@ export const UiBlockSchema = z.discriminatedUnion("kind", [
     kind: z.literal("list"),
     rows: z.array(z.string().min(1).max(40)).min(2).max(5),
   }),
+  z.object({
+    kind: z.literal("stat"),
+    value: z.string().min(1).max(14),
+    label: z.string().min(1).max(24),
+    sub: z.string().max(44).optional(),
+  }),
+  z.object({
+    kind: z.literal("quote"),
+    text: z.string().min(1).max(120),
+    attribution: z.string().max(40).optional(),
+  }),
 ]);
 
 export const FitSchema = z.object({
@@ -65,6 +76,7 @@ export const SceneBaseSchema = z.object({
   startMs: z.number().min(0).optional(),
   durationMs: z.number().min(2500).max(8000),
   kind: z.literal("device-ui"),
+  layout: z.enum(["device", "data", "type", "hook"]).default("device"),
   device: z.object({
     model: z.enum(["laptop", "phone"]),
     theme: z.enum(["light", "dark"]),
@@ -91,6 +103,7 @@ export const SceneBaseSchema = z.object({
 export const SceneSchema = SceneBaseSchema.extend({
   id: z.string().min(1).max(32),
   startMs: z.number().min(0),
+  layout: z.enum(["device", "data", "type", "hook"]),
   callouts: z.array(CalloutSchema).max(3),
   transitionIn: z.object({
     type: z.enum(["fade", "push"]),

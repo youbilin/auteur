@@ -52,7 +52,8 @@ export function hyperframesIssues(
     for (const finding of section.findings) {
       if (
         finding.code === "composition_file_too_large" ||
-        finding.code === "nested_structure_needs_subcomposition"
+        finding.code === "nested_structure_needs_subcomposition" ||
+        finding.code === "timeline_track_too_dense"
       ) {
         notes.push(`${sectionName}: ${finding.message ?? finding.code}`);
         continue;

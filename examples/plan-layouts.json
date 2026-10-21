@@ -1,0 +1,169 @@
+{
+  "version": 1,
+  "id": "layout-demo",
+  "template": "product-ui",
+  "ratio": "16:9",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationMs": 12000,
+  "brand": {
+    "name": "Arc",
+    "tagline": "Calm releases for fast teams",
+    "look": "dusk",
+    "accent": "#8BD3FF",
+    "url": "arc.app"
+  },
+  "scenes": [
+    {
+      "id": "scene-1",
+      "startMs": 0,
+      "durationMs": 3000,
+      "kind": "device-ui",
+      "layout": "device",
+      "device": { "model": "laptop", "theme": "dark" },
+      "copy": {
+        "headline": "Release day, without the noise",
+        "sub": "One calm workspace for every change."
+      },
+      "screen": {
+        "appName": "Arc / Releases",
+        "blocks": [
+          {
+            "kind": "header",
+            "text": "Release 2.4",
+            "sub": "12 changes ready to ship",
+            "pill": "Live"
+          },
+          {
+            "kind": "cards",
+            "items": [
+              { "title": "Deployments", "body": "Three pipelines green", "stat": "03" },
+              { "title": "Rollbacks", "body": "One-click safety", "stat": "00" },
+              { "title": "Signals", "body": "No regressions", "stat": "12" }
+            ]
+          }
+        ]
+      },
+      "callouts": [],
+      "camera": [
+        { "atMs": 0, "scale": 1.02, "focus": "screen" },
+        { "atMs": 1000, "scale": 1.08, "focus": "screen" }
+      ],
+      "transitionIn": { "type": "fade", "durationMs": 300 }
+    },
+    {
+      "id": "scene-2",
+      "startMs": 3000,
+      "durationMs": 3000,
+      "kind": "device-ui",
+      "layout": "data",
+      "device": { "model": "laptop", "theme": "dark" },
+      "copy": {
+        "headline": "Every signal in one view",
+        "sub": "Build time, risk, and coverage together."
+      },
+      "screen": {
+        "appName": "Arc / Signals",
+        "blocks": [
+          {
+            "kind": "header",
+            "text": "Release health",
+            "sub": "Build 218 · main",
+            "pill": "Green"
+          },
+          {
+            "kind": "chart",
+            "label": "Build time",
+            "bars": [0.32, 0.4, 0.48, 0.36, 0.44, 0.52, 0.46, 0.3],
+            "valueLabel": "18s"
+          },
+          {
+            "kind": "stat",
+            "value": "+42%",
+            "label": "Faster previews",
+            "sub": "since the new pipeline"
+          }
+        ]
+      },
+      "callouts": [
+        {
+          "id": "data-callout",
+          "blockIndex": 1,
+          "title": "18s to preview",
+          "body": "Down from six minutes.",
+          "enterMs": 700,
+          "exitMs": 2600
+        }
+      ],
+      "camera": [
+        { "atMs": 0, "scale": 1.01, "focus": "screen" },
+        { "atMs": 900, "scale": 1.08, "focus": "screen" }
+      ],
+      "transitionIn": { "type": "push", "durationMs": 320 }
+    },
+    {
+      "id": "scene-3",
+      "startMs": 6000,
+      "durationMs": 3000,
+      "kind": "device-ui",
+      "layout": "type",
+      "device": { "model": "laptop", "theme": "dark" },
+      "copy": {
+        "headline": "Ship with confidence",
+        "sub": "The release cockpit for calm teams."
+      },
+      "screen": {
+        "appName": "Arc",
+        "blocks": [{ "kind": "header", "text": "Ready" }]
+      },
+      "callouts": [
+        {
+          "id": "type-callout",
+          "blockIndex": 0,
+          "title": "One decision",
+          "body": "Reviewers, tests, and risk agree.",
+          "enterMs": 600,
+          "exitMs": 2600
+        }
+      ],
+      "camera": [{ "atMs": 0, "scale": 1, "focus": "screen" }],
+      "transitionIn": { "type": "fade", "durationMs": 300 }
+    },
+    {
+      "id": "scene-4",
+      "startMs": 9000,
+      "durationMs": 3000,
+      "kind": "device-ui",
+      "layout": "hook",
+      "device": { "model": "laptop", "theme": "dark" },
+      "copy": {
+        "headline": "Start before you feel ready",
+        "sub": "A streak that rewards the first step."
+      },
+      "screen": {
+        "appName": "Arc",
+        "blocks": [
+          {
+            "kind": "stat",
+            "value": "+40 XP",
+            "label": "Paid for starting",
+            "sub": "not for finishing"
+          }
+        ]
+      },
+      "callouts": [
+        {
+          "id": "hook-callout",
+          "blockIndex": 0,
+          "title": "Next ring, 09:00",
+          "body": "Same task tomorrow.",
+          "enterMs": 600,
+          "exitMs": 2600
+        }
+      ],
+      "camera": [{ "atMs": 0, "scale": 1, "focus": "screen" }],
+      "transitionIn": { "type": "fade", "durationMs": 300 }
+    }
+  ]
+}

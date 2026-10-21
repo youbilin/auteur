@@ -1,6 +1,8 @@
 import type { SceneSpec, UiBlock, VideoPlan } from "../../plans/schema.js";
 import type { LookTokens, Tokens } from "../tokens.js";
 
+export const TEMPLATE_VERSION = "6";
+
 export interface TemplateAssets {
   gsapJs: string;
   fonts: Array<{ weight: number; base64: string }>;
@@ -127,6 +129,23 @@ function renderBlock(block: UiBlock, sceneIndex: number, blockIndex: number): st
       </div>`;
   }
 
+  if (block.kind === "stat") {
+    return `
+      <div class="ui-block ui-stat-block" ${blockAttr}>
+        <div class="ui-stat-value" data-auteur-role="text" data-plan-path="${attr(`${base}.value`)}">${escapeHtml(block.value)}</div>
+        <div class="ui-stat-label" data-auteur-role="text" data-plan-path="${attr(`${base}.label`)}">${escapeHtml(block.label)}</div>
+        ${block.sub ? `<div class="ui-stat-sub" data-auteur-role="text" data-plan-path="${attr(`${base}.sub`)}">${escapeHtml(block.sub)}</div>` : ""}
+      </div>`;
+  }
+
+  if (block.kind === "quote") {
+    return `
+      <div class="ui-block ui-quote-block" ${blockAttr}>
+        <div class="quote-text" data-auteur-role="text" data-plan-path="${attr(`${base}.text`)}">“${escapeHtml(block.text)}”</div>
+        ${block.attribution ? `<div class="quote-attribution" data-auteur-role="text" data-plan-path="${attr(`${base}.attribution`)}">${escapeHtml(block.attribution)}</div>` : ""}
+      </div>`;
+  }
+
   const rows = block.rows
     .map((row, rowIndex) => {
       return `
@@ -139,6 +158,56 @@ function renderBlock(block: UiBlock, sceneIndex: number, blockIndex: number): st
   return `
     <div class="ui-block ui-list" ${blockAttr}>
       ${rows}
+    </div>`;
+}
+
+function renderCopy(scene: SceneSpec, plan: VideoPlan, sceneIndex: number, sceneNumber: string): string {
+  return `
+    <div class="eyebrow anim" data-auteur-role="text" data-plan-path="${attr(planPath("brand", "name"))}">
+      <span class="eyebrow-line"></span>${escapeHtml(plan.brand.name)} / ${sceneNumber}
+    </div>
+    <h1 class="headline anim" data-auteur-role="text" data-plan-path="${attr(planPath("scenes", sceneIndex, "copy", "headline"))}">${escapeHtml(scene.copy.headline)}</h1>
+    ${scene.copy.sub ? `<p class="sub anim" data-auteur-role="text" data-plan-path="${attr(planPath("scenes", sceneIndex, "copy", "sub"))}">${escapeHtml(scene.copy.sub)}</p>` : ""}
+    <div class="accent-rule anim"></div>
+    <div class="brandline anim">
+      <span>${escapeHtml(plan.brand.url ?? plan.brand.name)}</span>
+      ${plan.brand.tagline ? `<span>${escapeHtml(plan.brand.tagline)}</span>` : ""}
+    </div>`;
+}
+
+function hookStat(blocks: UiBlock[]): { value: string; label: string; path?: string } {
+  const block =
+    blocks.find(
+      (candidate) =>
+        candidate.kind === "stat" ||
+        candidate.kind === "cards" ||
+        candidate.kind === "chart",
+    ) ?? blocks[0];
+  if (!block) return { value: "01", label: "Start" };
+  if (block.kind === "stat") {
+    return { value: block.value, label: block.label };
+  }
+  if (block.kind === "cards") {
+    const first = block.items[0];
+    return { value: first?.stat ?? "01", label: first?.title ?? "Start" };
+  }
+  if (block.kind === "chart") {
+    return { value: block.valueLabel ?? "01", label: block.label };
+  }
+  if (block.kind === "header") {
+    return { value: block.pill ?? "01", label: block.text };
+  }
+  return { value: "01", label: "Start" };
+}
+
+function renderNote(scene: SceneSpec, sceneIndex: number): string {
+  const callout = scene.callouts[0];
+  if (!callout) return "";
+  const base = `scenes.${sceneIndex}.callouts.0`;
+  return `
+    <div class="type-note anim">
+      <span data-auteur-role="text" data-plan-path="${attr(`${base}.title`)}">${escapeHtml(callout.title)}</span>
+      ${callout.body ? `<p data-auteur-role="text" data-plan-path="${attr(`${base}.body`)}">${escapeHtml(callout.body)}</p>` : ""}
     </div>`;
 }
 
@@ -156,6 +225,7 @@ function renderCallouts(scene: SceneSpec, sceneIndex: number): string {
 }
 
 function renderScene(scene: SceneSpec, plan: VideoPlan, sceneIndex: number): string {
+  const layout = scene.layout;
   const blocks = scene.screen.blocks
     .map((block, blockIndex) => renderBlock(block, sceneIndex, blockIndex))
     .join("");
@@ -163,42 +233,69 @@ function renderScene(scene: SceneSpec, plan: VideoPlan, sceneIndex: number): str
   const deviceClass = scene.device.model === "phone" ? "phone" : "laptop";
   const sceneNumber = String(sceneIndex + 1).padStart(2, "0");
   const total = String(plan.scenes.length).padStart(2, "0");
+  const copy = renderCopy(scene, plan, sceneIndex, sceneNumber);
+  const note = renderNote(scene, sceneIndex);
+  const sceneIndexMarkup = `<div class="scene-index">${sceneNumber} / ${total}</div>`;
 
-  return `
-    <section class="scene clip" id="scene-${sceneIndex}" data-start="${seconds(scene.startMs)}" data-duration="${seconds(scene.durationMs)}" data-track-index="0" data-auteur-id="${attr(scene.id)}" data-plan-scene="${sceneIndex}">
-      <div class="scene-inner">
-        <div class="deck">
-          <div class="copy" style="${fitStyle(scene)}">
-            <div class="eyebrow anim" data-auteur-role="text" data-plan-path="${attr(planPath("brand", "name"))}">
-              <span class="eyebrow-line"></span>${escapeHtml(plan.brand.name)} / ${sceneNumber}
-            </div>
-            <h1 class="headline anim" data-auteur-role="text" data-plan-path="${attr(planPath("scenes", sceneIndex, "copy", "headline"))}">${escapeHtml(scene.copy.headline)}</h1>
-            ${scene.copy.sub ? `<p class="sub anim" data-auteur-role="text" data-plan-path="${attr(planPath("scenes", sceneIndex, "copy", "sub"))}">${escapeHtml(scene.copy.sub)}</p>` : ""}
-            <div class="accent-rule anim"></div>
-            <div class="brandline anim">
-              <span>${escapeHtml(plan.brand.url ?? plan.brand.name)}</span>
-              ${plan.brand.tagline ? `<span>${escapeHtml(plan.brand.tagline)}</span>` : ""}
-            </div>
-          </div>
-          <div class="stage">
-            <div class="device ${deviceClass}">
-              <div class="screen">
-                <div class="chrome">
-                  <div class="traffic"><i></i><i></i><i></i></div>
-                  <div class="chrome-title" data-auteur-role="text" data-plan-path="${attr(planPath("scenes", sceneIndex, "screen", "appName"))}">${escapeHtml(scene.screen.appName)}</div>
-                  <div class="chrome-spacer"></div>
-                </div>
-                <div class="app">
-                  ${blocks}
-                  <div class="app-footer"><span>${escapeHtml(plan.brand.url ?? plan.brand.name)}</span><span>Preview</span></div>
-                </div>
-              </div>
-              ${deviceClass === "laptop" ? `<div class="base"></div>` : ""}
-            </div>
-            ${callouts}
+  let content = "";
+
+  if (layout === "data") {
+    content = `
+      <div class="data-deck">
+        <div class="copy data-copy" style="${fitStyle(scene)}">${copy}</div>
+        ${note}
+        <div class="stage data-stage">
+          <div class="data-surface">${blocks}</div>
+        </div>
+      </div>`;
+  } else if (layout === "type") {
+    content = `
+      <div class="type-deck">
+        <div class="copy type-copy" style="${fitStyle(scene)}">${copy}</div>
+        ${note}
+      </div>`;
+  } else if (layout === "hook") {
+    const stat = hookStat(scene.screen.blocks);
+    content = `
+      <div class="hook-deck">
+        <div class="copy hook-copy" style="${fitStyle(scene)}">
+          ${copy}
+          <div class="hook-stat anim">
+            <div class="hook-value">${escapeHtml(stat.value)}</div>
+            <div class="hook-label">${escapeHtml(stat.label)}</div>
           </div>
         </div>
-        <div class="scene-index">${sceneNumber} / ${total}</div>
+        ${note}
+      </div>`;
+  } else {
+    content = `
+      <div class="deck">
+        <div class="copy" style="${fitStyle(scene)}">${copy}</div>
+        <div class="stage">
+          <div class="device ${deviceClass}">
+            <div class="screen">
+              <div class="chrome">
+                <div class="traffic"><i></i><i></i><i></i></div>
+                <div class="chrome-title" data-auteur-role="text" data-plan-path="${attr(planPath("scenes", sceneIndex, "screen", "appName"))}">${escapeHtml(scene.screen.appName)}</div>
+                <div class="chrome-spacer"></div>
+              </div>
+              <div class="app">
+                ${blocks}
+                <div class="app-footer"><span>${escapeHtml(plan.brand.url ?? plan.brand.name)}</span><span>Preview</span></div>
+              </div>
+            </div>
+            ${deviceClass === "laptop" ? `<div class="base"></div>` : ""}
+          </div>
+          ${callouts}
+        </div>
+      </div>`;
+  }
+
+  return `
+    <section class="scene clip layout-${layout}" id="scene-${sceneIndex}" data-layout="${layout}" data-start="${seconds(scene.startMs)}" data-duration="${seconds(scene.durationMs)}" data-track-index="0" data-auteur-id="${attr(scene.id)}" data-plan-scene="${sceneIndex}">
+      <div class="scene-inner">
+        ${content}
+        ${sceneIndexMarkup}
       </div>
     </section>`;
 }
@@ -228,7 +325,7 @@ function buildCss(plan: VideoPlan, tokens: Tokens, look: LookTokens): string {
       background: var(--bg);
     }
     body {
-      font-family: "Auteur Inter", "Segoe UI", system-ui, sans-serif;
+      font-family: "Auteur Inter", "Auteur CJK", sans-serif;
       color: var(--text);
       -webkit-font-smoothing: antialiased;
       text-rendering: geometricPrecision;
@@ -633,6 +730,177 @@ function buildCss(plan: VideoPlan, tokens: Tokens, look: LookTokens): string {
       opacity: 1;
     }
 
+    /* CJK typography */
+    .lang-zh .headline {
+      letter-spacing: -.02em;
+      line-height: 1.08;
+      word-break: normal;
+      overflow-wrap: anywhere;
+    }
+    .lang-zh .sub {
+      letter-spacing: 0;
+      line-height: 1.6;
+    }
+    .lang-zh .type-copy .headline {
+      letter-spacing: -.03em;
+      line-height: 1.02;
+    }
+
+    /* Stat / quote blocks */
+    .ui-stat-block {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .ui-stat-value { font-size: 42px; line-height: .95; font-weight: 600; letter-spacing: -.05em; }
+    .ui-stat-label { color: var(--muted); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; }
+    .ui-stat-sub { color: var(--muted); font-size: 12px; line-height: 1.35; }
+    .ui-quote-block {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .quote-text { font-size: 24px; line-height: 1.22; letter-spacing: -.025em; font-weight: 500; }
+    .quote-attribution { color: var(--muted); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; margin-top: 16px; }
+
+    /* Data layout */
+    .data-deck {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 28px;
+      padding: 112px 84px 82px;
+    }
+    .data-copy { max-width: 820px; }
+    .data-copy .headline { font-size: calc(var(--h1) * .82); }
+    .data-stage {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform-origin: center center;
+    }
+    .data-surface {
+      width: 100%;
+      max-height: 100%;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 24px 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      box-shadow: 0 34px 80px rgba(0,0,0,.28);
+    }
+    .look-paper .data-surface { box-shadow: 0 26px 60px rgba(23,24,26,.13); }
+    .data-surface .ui-header { padding-bottom: 12px; }
+    .data-surface .ui-title { font-size: 36px; }
+    .data-surface .ui-sub { font-size: 13px; }
+    .data-surface .ui-cards { gap: 12px; }
+    .data-surface .ui-card { min-height: 132px; }
+    .data-surface .ui-card-stat { font-size: 36px; }
+    .data-surface .ui-chart { padding: 18px 20px 14px; }
+    .data-surface .chart-bars { height: 156px; }
+    .data-surface .chart-value { font-size: 32px; }
+    .data-surface .ui-stat-value { font-size: 54px; }
+    .data-surface .quote-text { font-size: 30px; }
+
+    /* Type layout */
+    .type-deck {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 136px 84px 96px;
+      overflow: hidden;
+    }
+    .type-copy { position: relative; z-index: 2; max-width: 1460px; }
+    .type-copy .headline {
+      font-size: 122px;
+      line-height: .93;
+      letter-spacing: -.055em;
+      max-width: 1460px;
+    }
+    .type-copy .sub { font-size: 26px; max-width: 720px; margin-top: 28px; }
+    .type-copy .accent-rule { margin-top: 34px; }
+    .type-copy .brandline { max-width: 640px; margin-top: 40px; }
+    .type-note {
+      position: relative;
+      z-index: 2;
+      margin-top: 32px;
+      max-width: 620px;
+      padding-left: 16px;
+      border-left: 2px solid var(--accent);
+    }
+    .type-note > span {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    .type-note p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    /* Hook layout */
+    .hook-deck {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 136px 84px 96px;
+      overflow: hidden;
+    }
+    .hook-copy { position: relative; z-index: 2; max-width: 1420px; }
+    .hook-copy .headline { font-size: 86px; line-height: .96; letter-spacing: -.045em; }
+    .hook-copy .sub { font-size: 23px; max-width: 680px; }
+    .hook-stat {
+      display: flex;
+      align-items: baseline;
+      gap: 20px;
+      margin-top: 30px;
+      padding-top: 22px;
+      border-top: 1px solid var(--line);
+      max-width: 1000px;
+    }
+    .hook-value { color: var(--accent); font-size: 160px; line-height: .98; font-weight: 600; letter-spacing: -.07em; white-space: nowrap; }
+    .hook-label { color: var(--muted); font-size: 13px; letter-spacing: .13em; text-transform: uppercase; max-width: 260px; line-height: 1.35; }
+    .hook-deck .type-note { margin-top: 24px; }
+
+    .data-deck .type-note { margin-top: -6px; max-width: 760px; }
+    .ratio-9x16 .data-deck { padding: 92px 56px 70px; gap: 22px; }
+    .ratio-9x16 .data-copy .headline { font-size: 50px; }
+    .ratio-9x16 .data-surface { padding: 18px; gap: 12px; }
+    .ratio-9x16 .data-surface .ui-title { font-size: 28px; }
+    .ratio-9x16 .data-surface .chart-bars { height: 120px; }
+    .ratio-9x16 .type-deck,
+    .ratio-9x16 .hook-deck { padding: 112px 56px 80px; }
+    .ratio-9x16 .type-copy .headline { font-size: 72px; letter-spacing: -.04em; }
+    .ratio-9x16 .type-copy .sub { font-size: 20px; }
+    .ratio-9x16 .type-note p { font-size: 14px; }
+    .ratio-9x16 .hook-copy .headline { font-size: 58px; }
+    .ratio-9x16 .hook-copy .sub { font-size: 19px; }
+    .ratio-9x16 .hook-value { font-size: 112px; }
+
     .ratio-9x16 .deck {
       display: flex;
       flex-direction: column;
@@ -684,21 +952,30 @@ function buildCss(plan: VideoPlan, tokens: Tokens, look: LookTokens): string {
 
 function buildScript(plan: VideoPlan, meta: AuteurMeta): string {
   const totalSeconds = plan.durationMs / 1000;
-  const allBlocks = plan.scenes.flatMap((scene) => scene.screen.blocks);
+  const visualScenes = plan.scenes.filter(
+    (scene) => scene.layout === "device" || scene.layout === "data",
+  );
+  const allBlocks = visualScenes.flatMap((scene) => scene.screen.blocks);
   const anyCards = allBlocks.some((block) => block.kind === "cards");
   const anyChart = allBlocks.some((block) => block.kind === "chart");
   const anyList = allBlocks.some((block) => block.kind === "list");
-  const anyCallouts = plan.scenes.some((scene) => scene.callouts.length > 0);
+  const anyCallouts = plan.scenes.some(
+    (scene) => scene.layout === "device" && scene.callouts.length > 0,
+  );
+  const anyNotes = plan.scenes.some(
+    (scene) => scene.layout !== "device" && scene.callouts.length > 0,
+  );
 
   const lines: string[] = [];
   lines.push(`const tl = gsap.timeline({ paused: true });`);
   lines.push(`gsap.set(".scene-inner", { opacity: 0 });`);
   lines.push(`gsap.set(".copy .anim", { opacity: 0, y: 22 });`);
-  lines.push(`gsap.set(".ui-block", { opacity: 0, y: 16 });`);
+  if (visualScenes.length > 0) lines.push(`gsap.set(".ui-block", { opacity: 0, y: 16 });`);
   if (anyCards) lines.push(`gsap.set(".ui-card", { opacity: 0, y: 14 });`);
   if (anyList) lines.push(`gsap.set(".list-row", { opacity: 0, y: 8 });`);
   if (anyCallouts) lines.push(`gsap.set(".callout", { opacity: 0, y: 8 });`);
   if (anyChart) lines.push(`gsap.set(".bar", { opacity: 1, scaleY: 0, transformOrigin: "bottom center" });`);
+  if (anyNotes) lines.push(`gsap.set(".type-note", { opacity: 0, y: 12 });`);
   lines.push(`gsap.set(".progress-fill", { scaleX: 0, transformOrigin: "left center" });`);
   lines.push(`tl.to(".progress-fill", { scaleX: 1, duration: ${totalSeconds}, ease: "none" }, 0);`);
 
@@ -707,9 +984,11 @@ function buildScript(plan: VideoPlan, meta: AuteurMeta): string {
     const end = (scene.startMs + scene.durationMs) / 1000;
     const push = scene.transitionIn.type === "push";
     const selector = `#scene-${index}`;
-    const hasCards = scene.screen.blocks.some((block) => block.kind === "cards");
-    const hasChart = scene.screen.blocks.some((block) => block.kind === "chart");
-    const hasList = scene.screen.blocks.some((block) => block.kind === "list");
+    const visual = scene.layout === "device" || scene.layout === "data";
+    const hasCards = visual && scene.screen.blocks.some((block) => block.kind === "cards");
+    const hasChart = visual && scene.screen.blocks.some((block) => block.kind === "chart");
+    const hasList = visual && scene.screen.blocks.some((block) => block.kind === "list");
+    const hasNote = scene.layout !== "device" && scene.callouts.length > 0;
 
     lines.push(
       `tl.fromTo("${selector} .scene-inner", { opacity: 0, x: ${push ? 44 : 0}, y: ${push ? 0 : 16} }, { opacity: 1, x: 0, y: 0, duration: 0.46, ease: "power3.out" }, ${start.toFixed(3)});`,
@@ -722,9 +1001,16 @@ function buildScript(plan: VideoPlan, meta: AuteurMeta): string {
     lines.push(
       `tl.to("${selector} .copy .anim", { opacity: 1, y: 0, duration: 0.56, stagger: 0.07, ease: "power3.out" }, ${(start + 0.08).toFixed(3)});`,
     );
-    lines.push(
-      `tl.to("${selector} .ui-block", { opacity: 1, y: 0, duration: 0.46, stagger: 0.08, ease: "power2.out" }, ${(start + 0.3).toFixed(3)});`,
-    );
+    if (visual) {
+      lines.push(
+        `tl.to("${selector} .ui-block", { opacity: 1, y: 0, duration: 0.46, stagger: 0.08, ease: "power2.out" }, ${(start + 0.3).toFixed(3)});`,
+      );
+    }
+    if (hasNote) {
+      lines.push(
+        `tl.to("${selector} .type-note", { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, ${(start + 0.42).toFixed(3)});`,
+      );
+    }
     if (hasCards) {
       lines.push(
         `tl.to("${selector} .ui-card", { opacity: 1, y: 0, duration: 0.4, stagger: 0.06, ease: "power2.out" }, ${(start + 0.44).toFixed(3)});`,
@@ -741,22 +1027,29 @@ function buildScript(plan: VideoPlan, meta: AuteurMeta): string {
       );
     }
 
-    for (const [calloutIndex, callout] of scene.callouts.entries()) {
-      const enter = start + callout.enterMs / 1000;
-      const exit = start + callout.exitMs / 1000;
-      lines.push(
-        `tl.to("${selector} .callout-${calloutIndex}", { opacity: 1, y: 0, duration: 0.32, ease: "power2.out" }, ${enter.toFixed(3)});`,
-      );
-      lines.push(
-        `tl.to("${selector} .callout-${calloutIndex}", { opacity: 0, y: -6, duration: 0.22, ease: "power2.in" }, ${exit.toFixed(3)});`,
-      );
+    if (scene.layout === "device") {
+      for (const [calloutIndex, callout] of scene.callouts.entries()) {
+        const enter = start + callout.enterMs / 1000;
+        const exit = start + callout.exitMs / 1000;
+        lines.push(
+          `tl.to("${selector} .callout-${calloutIndex}", { opacity: 1, y: 0, duration: 0.32, ease: "power2.out" }, ${enter.toFixed(3)});`,
+        );
+        lines.push(
+          `tl.to("${selector} .callout-${calloutIndex}", { opacity: 0, y: -6, duration: 0.22, ease: "power2.in" }, ${exit.toFixed(3)});`,
+        );
+      }
     }
 
-    for (const camera of scene.camera) {
-      const at = start + camera.atMs / 1000;
-      lines.push(
-        `tl.to("${selector} .stage", { scale: ${camera.scale}, duration: 1.15, ease: "power2.inOut" }, ${at.toFixed(3)});`,
-      );
+    if (scene.layout === "device") {
+      for (const [cameraIndex, camera] of scene.camera.entries()) {
+        const at = start + camera.atMs / 1000;
+        const nextAt = scene.camera[cameraIndex + 1]?.atMs ?? scene.durationMs;
+        const gap = Math.max(0.25, (nextAt - camera.atMs) / 1000 - 0.05);
+        const duration = Math.min(1.15, gap);
+        lines.push(
+          `tl.to("${selector} .stage", { scale: ${camera.scale}, duration: ${duration.toFixed(3)}, ease: "power2.inOut" }, ${at.toFixed(3)});`,
+        );
+      }
     }
   }
 
@@ -781,7 +1074,7 @@ function buildScript(plan: VideoPlan, meta: AuteurMeta): string {
     function placeCallouts() {
       document.querySelectorAll(".scene").forEach((scene) => {
         const stage = scene.querySelector(".stage");
-        const screen = scene.querySelector(".screen");
+        const screen = scene.querySelector(".screen, .data-surface");
         if (!stage || !screen) return;
         const stageRect = stage.getBoundingClientRect();
         scene.querySelectorAll(".callout").forEach((callout) => {
@@ -877,20 +1170,39 @@ export function renderProductUi(plan: VideoPlan, tokens: Tokens, assets: Templat
     }),
   };
 
-  const fontFaces = assets.fonts
-    .map(
-      (font) => `@font-face{font-family:"Auteur Inter";font-style:normal;font-weight:${font.weight};font-display:block;src:url(data:font/woff2;base64,${font.base64}) format("woff2");}`,
-    )
-    .join("\n");
+  const fontFaces = `${
+    assets.fonts
+      .map(
+        (font) => `@font-face{font-family:"Auteur Inter";font-style:normal;font-weight:${font.weight};font-display:block;src:url(data:font/woff2;base64,${font.base64}) format("woff2");}`,
+      )
+      .join("\n")
+  }\n@font-face{font-family:"Auteur CJK";font-style:normal;font-weight:400 700;font-display:block;src:local("Microsoft YaHei"),local("PingFang SC"),local("Noto Sans SC"),local("Hiragino Sans GB"),local("Noto Sans CJK SC");}`;
 
   const css = `${fontFaces}\n${buildCss(plan, tokens, look)}`;
   const scenes = plan.scenes
     .map((scene, index) => renderScene(scene, plan, index))
     .join("\n");
   const script = buildScript(plan, meta);
+  const cjkText = [
+    plan.brand.name,
+    plan.brand.tagline ?? "",
+    ...plan.scenes.flatMap((scene) => [
+      scene.copy.headline,
+      scene.copy.sub ?? "",
+      ...scene.screen.blocks.flatMap((block) => {
+        if (block.kind === "header") return [block.text, block.sub ?? "", block.pill ?? ""];
+        if (block.kind === "cards") return block.items.flatMap((item) => [item.title, item.body ?? "", item.stat ?? ""]);
+        if (block.kind === "chart") return [block.label, block.valueLabel ?? ""];
+        if (block.kind === "list") return block.rows;
+        if (block.kind === "stat") return [block.value, block.label, block.sub ?? ""];
+        return [block.text, block.attribution ?? ""];
+      }),
+    ]),
+  ].join(" ");
+  const isCjk = /[\u3400-\u9fff]/.test(cjkText);
 
   return `<!doctype html>
-<html lang="en">
+<html lang="${isCjk ? "zh-CN" : "en"}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=${plan.width}, height=${plan.height}" />
@@ -898,7 +1210,7 @@ export function renderProductUi(plan: VideoPlan, tokens: Tokens, assets: Templat
   <style>${css}</style>
 </head>
 <body>
-  <div id="root" class="frame look-${plan.brand.look} ${ratioClass}" data-composition-id="main" data-start="0" data-duration="${seconds(plan.durationMs)}" data-fps="${plan.fps}" data-width="${plan.width}" data-height="${plan.height}">
+  <div id="root" class="frame look-${plan.brand.look} ${ratioClass}${isCjk ? " lang-zh" : ""}" data-composition-id="main" data-start="0" data-duration="${seconds(plan.durationMs)}" data-fps="${plan.fps}" data-width="${plan.width}" data-height="${plan.height}">
     <div class="backdrop"></div>
     <div class="grain"></div>
     <div class="vignette"></div>

@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "id": "arc-zh",
+  "template": "product-ui",
+  "ratio": "16:9",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationMs": 8000,
+  "brand": {
+    "name": "弧光",
+    "tagline": "让发布安静下来",
+    "look": "dusk",
+    "accent": "#8BD3FF",
+    "url": "arc.app"
+  },
+  "scenes": [
+    {
+      "id": "scene-1",
+      "startMs": 0,
+      "durationMs": 4000,
+      "kind": "device-ui",
+      "layout": "device",
+      "device": { "model": "laptop", "theme": "dark" },
+      "copy": {
+        "headline": "发布日，不再嘈杂",
+        "sub": "一个工作区，装下所有变更。"
+      },
+      "screen": {
+        "appName": "Arc / 发布",
+        "blocks": [
+          {
+            "kind": "header",
+            "text": "发布 2.4",
+            "sub": "12 项变更待上线",
+            "pill": "实时"
+          },
+          {
+            "kind": "cards",
+            "items": [
+              { "title": "部署", "body": "三条流水线全绿", "stat": "03" },
+              { "title": "回滚", "body": "一键恢复", "stat": "00" },
+              { "title": "信号", "body": "没有回归", "stat": "12" }
+            ]
+          }
+        ]
+      },
+      "callouts": [],
+      "camera": [
+        { "atMs": 0, "scale": 1.02, "focus": "screen" },
+        { "atMs": 1000, "scale": 1.08, "focus": "screen" }
+      ],
+      "transitionIn": { "type": "fade", "durationMs": 320 }
+    },
+    {
+      "id": "scene-2",
+      "startMs": 4000,
+      "durationMs": 4000,
+      "kind": "device-ui",
+      "layout": "type",
+      "device": { "model": "laptop", "theme": "dark" },
+      "copy": {
+        "headline": "带着信心发布",
+        "sub": "风险、覆盖率、团队，一页看清。"
+      },
+      "screen": {
+        "appName": "Arc",
+        "blocks": [{ "kind": "header", "text": "可以发布" }]
+      },
+      "callouts": [
+        {
+          "id": "zh-callout",
+          "blockIndex": 0,
+          "title": "一个决定",
+          "body": "评审、测试与风险都同意。",
+          "enterMs": 700,
+          "exitMs": 3400
+        }
+      ],
+      "camera": [{ "atMs": 0, "scale": 1, "focus": "screen" }],
+      "transitionIn": { "type": "fade", "durationMs": 320 }
+    }
+  ]
+}

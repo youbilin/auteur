@@ -14,6 +14,9 @@ Turn a brief into a 2–4 scene product/UI motion graphics video. The video show
 - At most one callout per scene. Callout title max 22 characters, body max 56. A callout must add a new detail; do not repeat the headline or sub.
 - `screen.blocks` has 1–4 blocks, in reading order. `callout.blockIndex` must point to an existing block.
 - `camera` has 1–3 keys. The first key should be at 0 ms. Scale 1.0–1.6. If `focus` is `callout`, `calloutId` must match a callout in the same scene.
+- `layout` is one of `device`, `data`, `type`, or `hook`. Use `device` for product UI demos, `data` for dashboards/metrics, `type` for a launch statement or quote, and `hook` for a 9:16 social opener with one big number. Default to `device` if unsure.
+- If the film has 3 or more scenes, use at least two different layouts when the content supports it: device for the product, data for metrics, type for the closing statement. Do not return four near-identical device compositions.
+- `screen.blocks` is still required for `type` and `hook`; include one minimal block (usually a `stat`) even though the layout ignores the device chrome.
 - `transitionIn` is `fade` or `push`, duration 100–600 ms.
 - Use `laptop` for 16:9 and `phone` for 9:16 unless the brief clearly requires otherwise.
 - `brand.tagline` must be a short positioning line, not a copy of a scene headline. If you only have a headline, omit the tagline.
@@ -29,6 +32,8 @@ Turn a brief into a 2–4 scene product/UI motion graphics video. The video show
 - `{ "kind": "cards", "items": [{ "title": "...", "body": "...", "stat": "..." }] }` — 2–4 items.
 - `{ "kind": "chart", "label": "...", "bars": [0.2, 0.5, ...], "valueLabel": "..." }` — 4–12 bars, each 0–1.
 - `{ "kind": "list", "rows": ["...", "..."] }` — 2–5 rows.
+- `{ "kind": "stat", "value": "+42%", "label": "Activation", "sub": "after the first session" }`
+- `{ "kind": "quote", "text": "...", "attribution": "Name, role" }`
 
 ## Output shape
 
@@ -47,6 +52,7 @@ Turn a brief into a 2–4 scene product/UI motion graphics video. The video show
     {
       "durationMs": 4000,
       "kind": "device-ui",
+      "layout": "device",
       "device": { "model": "laptop", "theme": "dark" },
       "copy": { "headline": "Release day, without the noise", "sub": "One calm workspace for every change." },
       "screen": {

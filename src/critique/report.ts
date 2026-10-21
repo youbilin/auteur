@@ -25,15 +25,18 @@ export interface BuildReportInput {
   facts: MediaFacts;
   notes?: string[];
   contactSheet?: string;
+  vlmScore?: number;
 }
 
 export function buildQaReport(input: BuildReportInput): QAReport {
-  const domIssues = input.issues.filter((issue) => issue.critic === "dom");
-  const mediaIssues = input.issues.filter((issue) => issue.critic === "media");
-  const hfIssues = input.issues.filter((issue) => issue.critic === "hyperframes");
-  const score = clampScore(100 - deduction(input.issues));
-  const hasBlocker = input.issues.some((issue) => issue.severity === "blocker");
-  const hasMajor = input.issues.some((issue) => issue.severity === "major");
+  const scored = input.issues.filter((issue) => issue.critic !== "vlm");
+  const vlmIssues = input.issues.filter((issue) => issue.critic === "vlm");
+  const domIssues = scored.filter((issue) => issue.critic === "dom");
+  const mediaIssues = scored.filter((issue) => issue.critic === "media");
+  const hfIssues = scored.filter((issue) => issue.critic === "hyperframes");
+  const score = clampScore(100 - deduction(scored));
+  const hasBlocker = scored.some((issue) => issue.severity === "blocker");
+  const hasMajor = scored.some((issue) => issue.severity === "major");
   const verdict: QAReport["verdict"] = hasBlocker || score < 55
     ? "fail"
     : hasMajor || score < 85
@@ -49,6 +52,11 @@ export function buildQaReport(input: BuildReportInput): QAReport {
       dom: clampScore(100 - deduction(domIssues)),
       media: clampScore(100 - deduction(mediaIssues)),
       hyperframes: clampScore(100 - deduction(hfIssues)),
+      ...(input.vlmScore !== undefined
+        ? { vlm: clampScore(input.vlmScore) }
+        : vlmIssues.length > 0
+          ? { vlm: clampScore(100 - deduction(vlmIssues)) }
+          : {}),
     },
     issues: input.issues,
     artifacts: {
@@ -114,6 +122,7 @@ export function writeQaFiles(runId: string, report: QAReport, plan: VideoPlan, f
   lines.push(`- DOM: ${report.rubric.dom}`);
   lines.push(`- Media: ${report.rubric.media}`);
   lines.push(`- HyperFrames: ${report.rubric.hyperframes ?? "n/a"}`);
+  if (report.rubric.vlm !== undefined) lines.push(`- VLM (advisory): ${report.rubric.vlm}`);
   lines.push("");
 
   if (report.issues.length === 0) {

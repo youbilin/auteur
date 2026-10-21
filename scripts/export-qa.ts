@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { PROJECT_ROOT, ensureDir, readJson, runDir } from "../src/core/paths.js";
 
-const runs = ["arc-real", "pulse-real", "orbit-real", "todopa-bench"];
+const runs = ["arc-real", "pulse-real", "orbit-real", "todopa-bench", "studio-test"];
 const outDir = ensureDir(path.join(PROJECT_ROOT, "docs", "qa"));
 
 for (const runId of runs) {

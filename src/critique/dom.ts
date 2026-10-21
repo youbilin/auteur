@@ -31,6 +31,7 @@ const DOM_AUDIT_SCRIPT = `(() => {
     if (r.width < 1 || r.height < 1) continue;
     const scene = el.closest(".scene");
     const sceneIndex = Number(scene && scene.dataset ? scene.dataset.planScene : -1);
+    const sceneLayout = scene && scene.dataset ? scene.dataset.layout || "device" : "device";
     const role = el.dataset.auteurRole || "text";
     const planPath = el.dataset.planPath || "";
     if (!planPath || sceneIndex < 0) continue;
@@ -68,7 +69,7 @@ const DOM_AUDIT_SCRIPT = `(() => {
       });
     }
 
-    if (isCopy || isCallout) {
+    if ((isCopy || isCallout) && !(isCallout && sceneLayout === "data")) {
       const padX = window.innerWidth * 0.03;
       const padY = window.innerHeight * 0.03;
       if (r.left < padX || r.top < padY || r.right > window.innerWidth - padX || r.bottom > window.innerHeight - padY) {
@@ -103,7 +104,8 @@ const DOM_AUDIT_SCRIPT = `(() => {
     const calloutPath = pathEl ? pathEl.dataset.planPath || "" : "";
     const scene = callout.closest(".scene");
     const sceneIndex = Number(scene && scene.dataset ? scene.dataset.planScene : -1);
-    if (!calloutPath || sceneIndex < 0) continue;
+    const sceneLayout = scene && scene.dataset ? scene.dataset.layout || "device" : "device";
+    if (!calloutPath || sceneIndex < 0 || sceneLayout === "data") continue;
     const text = (callout.textContent || "").replace(/\\s+/g, " ").trim().slice(0, 100);
 
     for (const other of copyEls) {

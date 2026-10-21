@@ -11,7 +11,7 @@ We took the public concept, wrote a new 12-second product-film brief, and genera
 | Format | 59s real app screen recording | 12s product/UI film |
 | Prompt | Not public | [Public concept brief](prompts/todopa.md), written by us |
 | UI | Real app: timer, camera feed, progress, reward | Reconstructed UI: timer, proof chart, reward cards |
-| Motion | Real screen recording and app transitions | 3 scenes, camera pushes, callouts, transitions |
+| Motion | Real screen recording and app transitions | 3 scenes in device → data → hook layouts, with camera moves and notes |
 | Audio | Not evaluated | Generated ambient bed + 5 SFX, −16 LUFS |
 | QA | n/a | 100/100 (DOM, media, HyperFrames, loudness) |
 
@@ -23,6 +23,7 @@ We took the public concept, wrote a new 12-second product-film brief, and genera
 
 - The concept is legible in 12 seconds: a task is due, proof is required, the reward lands.
 - The green accent and dark UI carry the "dopamine loop" idea without looking like a generic AI demo.
+- Device → data → hook layouts give the three beats different compositions; this was a direct response to the VLM critic flagging repeated frames in an earlier cut.
 - The phone layout, callouts, and generated sound make it feel like a finished product film rather than a code demo.
 
 ## What did not match
@@ -31,6 +32,7 @@ We took the public concept, wrote a new 12-second product-film brief, and genera
 - The original is 59 seconds and can show a full loop; ours is three four-second beats.
 - The model invented a privacy claim during generation ("the frame is scored locally, then discarded"). That was not in the brief and is not verified; we replaced it with "A single frame clears the check" before publishing. This is a concrete example of why human review remains mandatory.
 - The generated score is a simple ambient bed, not a composed track.
+- The VLM advisor still gives the final cut 74/100 and flags legibility/empty-space issues; it is advisory and does not change the scored QA.
 
 ## Self-assessment
 
@@ -58,4 +60,4 @@ pnpm run make -- --brief bench/prompts/todopa.md --out todopa-bench --ratio 9:16
 pnpm run qa -- --run todopa-bench
 ```
 
-The model output is a `VideoPlan`; the template, type, motion, and audio are deterministic. The only manual edit in this study was removing the invented privacy claim.
+The model output is a `VideoPlan`; the template, type, motion, and audio are deterministic. Manual edits in this study: removing the invented privacy claim, and switching the three scenes to device → data → hook after the VLM critic flagged repeated compositions.

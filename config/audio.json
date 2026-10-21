@@ -5,6 +5,8 @@
   "loudnessRange": 11,
   "bedLevel": 0.9,
   "sfxLevel": 0.9,
+  "voiceLevel": 1.0,
+  "bedDuck": 0.42,
   "fadeInMs": 600,
   "fadeOutMs": 900,
   "whooshLeadMs": 120

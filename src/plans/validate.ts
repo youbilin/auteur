@@ -80,6 +80,7 @@ export function normalizePlan(input: unknown, opts: { id?: string } = {}): Video
       startMs,
       durationMs,
       kind: "device-ui" as const,
+      layout: scene.layout,
       device: scene.device,
       copy: scene.copy,
       screen: { ...scene.screen, blocks },
