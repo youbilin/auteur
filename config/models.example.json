@@ -1,0 +1,36 @@
+{
+  "models": [
+    {
+      "id": "director-primary",
+      "label": "Director primary",
+      "baseUrlEnv": "AUTEUR_RELAY_BASE_URL",
+      "apiKeyEnv": "AUTEUR_RELAY_API_KEY",
+      "modelEnv": "AUTEUR_MODEL_DIRECTOR",
+      "supports": { "json": "unknown", "images": "unknown" }
+    },
+    {
+      "id": "director-fallback",
+      "label": "Director fallback (coder)",
+      "baseUrlEnv": "AUTEUR_RELAY_BASE_URL",
+      "apiKeyEnv": "AUTEUR_RELAY_API_KEY",
+      "modelEnv": "AUTEUR_MODEL_CODER",
+      "supports": { "json": "unknown", "images": "unknown" }
+    },
+    {
+      "id": "coder-primary",
+      "label": "Coder / fixer",
+      "baseUrlEnv": "AUTEUR_RELAY_BASE_URL",
+      "apiKeyEnv": "AUTEUR_RELAY_API_KEY",
+      "modelEnv": "AUTEUR_MODEL_CODER",
+      "supports": { "json": "unknown", "images": "unknown" }
+    },
+    {
+      "id": "vision-primary",
+      "label": "Vision critic",
+      "baseUrlEnv": "AUTEUR_RELAY_BASE_URL",
+      "apiKeyEnv": "AUTEUR_RELAY_API_KEY",
+      "modelEnv": "AUTEUR_MODEL_VISION",
+      "supports": { "json": "unknown", "images": "unknown" }
+    }
+  ]
+}

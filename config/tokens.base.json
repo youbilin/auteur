@@ -1,0 +1,63 @@
+{
+  "looks": {
+    "dusk": {
+      "bg": "#080A0D",
+      "bgAlt": "#0D1116",
+      "surface": "#10151B",
+      "surface2": "#151C24",
+      "text": "#F2F5F7",
+      "muted": "#93A0AE",
+      "line": "rgba(255,255,255,0.10)",
+      "grid": "rgba(255,255,255,0.045)",
+      "accent": "#8BD3FF",
+      "accentInk": "#071018"
+    },
+    "paper": {
+      "bg": "#F2EFE8",
+      "bgAlt": "#E9E4DA",
+      "surface": "#FFFFFF",
+      "surface2": "#F7F4EE",
+      "text": "#17181A",
+      "muted": "#4F545C",
+      "line": "rgba(17,18,20,0.12)",
+      "grid": "rgba(17,18,20,0.06)",
+      "accent": "#1F4FD8",
+      "accentInk": "#FFFFFF"
+    }
+  },
+  "type": {
+    "display": 96,
+    "h1": 88,
+    "h2": 48,
+    "title": 64,
+    "body": 24,
+    "small": 18,
+    "micro": 13
+  },
+  "space": {
+    "1": 4,
+    "2": 8,
+    "3": 12,
+    "4": 16,
+    "5": 24,
+    "6": 32,
+    "7": 48,
+    "8": 64,
+    "9": 96
+  },
+  "radius": {
+    "sm": 8,
+    "md": 16,
+    "lg": 24,
+    "xl": 32,
+    "pill": 999
+  },
+  "motion": {
+    "fast": 150,
+    "base": 250,
+    "slow": 400,
+    "scene": 700,
+    "camera": 1200,
+    "easings": ["none", "power2.out", "power3.inOut", "power3.out"]
+  }
+}

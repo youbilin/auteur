@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "targetLufs": -16,
+  "truePeakDb": -1.5,
+  "loudnessRange": 11,
+  "bedLevel": 0.9,
+  "sfxLevel": 0.9,
+  "fadeInMs": 600,
+  "fadeOutMs": 900,
+  "whooshLeadMs": 120
+}

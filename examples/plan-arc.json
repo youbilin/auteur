@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "id": "arc-release",
+  "template": "product-ui",
+  "ratio": "16:9",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationMs": 12000,
+  "brand": {
+    "name": "Arc",
+    "tagline": "Calm releases for fast teams",
+    "look": "dusk",
+    "accent": "#8BD3FF",
+    "url": "arc.app"
+  },
+  "scenes": [
+    {
+      "id": "scene-1",
+      "startMs": 0,
+      "durationMs": 4000,
+      "kind": "device-ui",
+      "device": { "model": "laptop", "theme": "dark" },
+      "copy": {
+        "headline": "Release day, without the noise",
+        "sub": "One calm workspace for every change."
+      },
+      "screen": {
+        "appName": "Arc / Releases",
+        "blocks": [
+          {
+            "kind": "header",
+            "text": "Release 2.4",
+            "sub": "12 changes ready to ship",
+            "pill": "Live"
+          },
+          {
+            "kind": "cards",
+            "items": [
+              { "title": "Deployments", "body": "Three pipelines green", "stat": "03" },
+              { "title": "Rollbacks", "body": "One-click safety", "stat": "00" },
+              { "title": "Signals", "body": "No regressions", "stat": "12" }
+            ]
+          }
+        ]
+      },
+      "callouts": [
+        {
+          "id": "preview",
+          "blockIndex": 1,
+          "title": "Live preview",
+          "body": "See every change before it ships.",
+          "enterMs": 900,
+          "exitMs": 3300
+        }
+      ],
+      "camera": [
+        { "atMs": 0, "scale": 1.02, "focus": "screen" },
+        { "atMs": 1200, "scale": 1.12, "focus": "callout", "calloutId": "preview" }
+      ],
+      "transitionIn": { "type": "fade", "durationMs": 400 }
+    },
+    {
+      "id": "scene-2",
+      "startMs": 4000,
+      "durationMs": 4000,
+      "kind": "device-ui",
+      "device": { "model": "laptop", "theme": "dark" },
+      "copy": {
+        "headline": "Every change, previewed",
+        "sub": "Spin up a review environment in seconds."
+      },
+      "screen": {
+        "appName": "Arc / Preview",
+        "blocks": [
+          {
+            "kind": "header",
+            "text": "Preview environment",
+            "sub": "feature/checkout · 2m ago",
+            "pill": "Ready"
+          },
+          {
+            "kind": "chart",
+            "label": "Build time",
+            "bars": [0.35, 0.5, 0.42, 0.68, 0.58, 0.82, 0.74],
+            "valueLabel": "18s"
+          },
+          {
+            "kind": "list",
+            "rows": [
+              "Staging is healthy",
+              "No visual diffs",
+              "Two reviewers notified"
+            ]
+          }
+        ]
+      },
+      "callouts": [
+        {
+          "id": "speed",
+          "blockIndex": 1,
+          "title": "18s to preview",
+          "body": "Down from six minutes.",
+          "enterMs": 1000,
+          "exitMs": 3400
+        }
+      ],
+      "camera": [
+        { "atMs": 0, "scale": 1.0, "focus": "screen" },
+        { "atMs": 1400, "scale": 1.18, "focus": "callout", "calloutId": "speed" }
+      ],
+      "transitionIn": { "type": "push", "durationMs": 400 }
+    },
+    {
+      "id": "scene-3",
+      "startMs": 8000,
+      "durationMs": 4000,
+      "kind": "device-ui",
+      "device": { "model": "laptop", "theme": "dark" },
+      "copy": {
+        "headline": "Ship with confidence",
+        "sub": "The release cockpit for calm teams."
+      },
+      "screen": {
+        "appName": "Arc",
+        "blocks": [
+          {
+            "kind": "header",
+            "text": "Ready to ship",
+            "sub": "All checks passed",
+            "pill": "Go"
+          },
+          {
+            "kind": "cards",
+            "items": [
+              { "title": "Risk", "body": "Low", "stat": "0.2" },
+              { "title": "Coverage", "body": "All paths", "stat": "98%" },
+              { "title": "Team", "body": "Aligned", "stat": "06" }
+            ]
+          }
+        ]
+      },
+      "callouts": [
+        {
+          "id": "start",
+          "blockIndex": 1,
+          "title": "Start free",
+          "body": "arc.app",
+          "enterMs": 900,
+          "exitMs": 3400
+        }
+      ],
+      "camera": [
+        { "atMs": 0, "scale": 1.0, "focus": "screen" },
+        { "atMs": 1200, "scale": 1.08, "focus": "callout", "calloutId": "start" }
+      ],
+      "transitionIn": { "type": "fade", "durationMs": 400 }
+    }
+  ]
+}

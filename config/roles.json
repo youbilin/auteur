@@ -1,0 +1,30 @@
+{
+  "director": {
+    "chain": ["director-primary", "director-fallback"],
+    "temperature": 0.35,
+    "maxTokens": 8000,
+    "timeoutMs": 120000,
+    "retries": 2
+  },
+  "critic": {
+    "chain": ["vision-primary"],
+    "temperature": 0.2,
+    "maxTokens": 4000,
+    "timeoutMs": 90000,
+    "retries": 1
+  },
+  "fixer": {
+    "chain": ["coder-primary", "director-primary"],
+    "temperature": 0.2,
+    "maxTokens": 6000,
+    "timeoutMs": 90000,
+    "retries": 2
+  },
+  "vision": {
+    "chain": ["vision-primary"],
+    "temperature": 0.2,
+    "maxTokens": 4000,
+    "timeoutMs": 90000,
+    "retries": 1
+  }
+}
