@@ -17,7 +17,7 @@ We took the public concept, wrote a new 12-second product-film brief, and genera
 
 ![Auteur ToDopa frame](../docs/todopa-bench.jpg)
 
-[Watch the Auteur version](media/todopa-bench.mp4)
+[Watch the Auteur version](media/todopa-bench.mp4) · [QA report](../docs/qa/todopa-bench.md)
 
 ## What matched
 

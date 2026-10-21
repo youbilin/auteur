@@ -126,6 +126,14 @@ pnpm run make -- --brief briefs/arc.md --out arc
 
 The local example passes 100/100. The score is a guardrail, not a substitute for human taste.
 
+### Evidence
+
+- [Arc QA report](docs/qa/arc-real.md) — 100/100, 12s, audio −15.9 LUFS
+- [Pulse QA report](docs/qa/pulse-real.md) — 100/100, 10.2s
+- [Orbit QA report](docs/qa/orbit-real.md) — 100/100, 12s, 1080×1920
+- [ToDopa QA report](docs/qa/todopa-bench.md) — 100/100, 12s, 1080×1920
+- [Fix loop evidence](docs/qa/fix-loop.md) — 95 → 100, one JSON Patch
+
 ### Fix loop demo
 
 The deliberate `examples/plan-overflow.json` fixture scores **95/100** with a 45px headline overflow. One patch reduces `headlineScale` from 1.20 to 1.08; the re-render passes **100/100**. The original and fixed videos are kept separately.

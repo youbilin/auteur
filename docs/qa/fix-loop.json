@@ -1,0 +1,15 @@
+{
+  "fixture": "examples/plan-overflow.json",
+  "scoreBefore": 95,
+  "scoreAfter": 100,
+  "patches": [
+    {
+      "op": "replace",
+      "path": "/scenes/0/fit",
+      "value": {
+        "headlineScale": 1.08
+      }
+    }
+  ],
+  "skipped": []
+}
