@@ -58,6 +58,8 @@ The Studio top bar and the desktop launcher both have an **EN / 中文** switch.
 
 A lightweight Tauri 2 shell wraps the production Studio. It is a launcher, not a self-contained runtime: it starts `studio/server.ts` from a project folder with the local Node, waits for port 4310, then navigates to it. Closing the window stops the server it started; if port 4310 was already serving, it opens that server and leaves it running.
 
+[Download the Windows x64 launcher](https://github.com/youbilin/auteur/releases/latest). It is unsigned and requires the runtime and project setup described below.
+
 ![Auteur Studio launcher](docs/media/tauri-launcher.png)
 
 ![Auteur Studio in the desktop shell](docs/media/tauri-studio.png)
