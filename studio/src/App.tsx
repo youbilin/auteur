@@ -19,6 +19,7 @@ import {
 type Ratio = "16:9" | "9:16";
 type Quality = "draft" | "looks" | "delivery";
 type Layout = "auto" | "device" | "data" | "type" | "hook";
+type RenderMode = "full" | "scenes";
 
 interface ModelInfo {
   id: string;
@@ -206,6 +207,7 @@ export function App() {
   const [ratio, setRatio] = useState<Ratio>("16:9");
   const [layout, setLayout] = useState<Layout>("auto");
   const [quality, setQuality] = useState<Quality>("looks");
+  const [renderMode, setRenderMode] = useState<RenderMode>("full");
   const [voiceText, setVoiceText] = useState("");
   const [jsonDraft, setJsonDraft] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -321,6 +323,7 @@ export function App() {
         ratio,
         layout,
         quality,
+        mode: renderMode,
       });
       await refreshRuns();
       await loadRun(data.run.id);
@@ -341,7 +344,7 @@ export function App() {
   const render = () =>
     runBusy("Rendering", async () => {
       if (!currentId) throw new Error("Generate or select a run first.");
-      await post("/api/render", { runId: currentId, quality });
+      await post("/api/render", { runId: currentId, quality, mode: renderMode });
       await loadRun(currentId);
       await refreshRuns();
     });
@@ -357,7 +360,7 @@ export function App() {
   const fix = () =>
     runBusy("Fixing", async () => {
       if (!currentId) throw new Error("Generate or select a run first.");
-      await post("/api/fix", { runId: currentId, quality });
+      await post("/api/fix", { runId: currentId, quality, mode: renderMode });
       await loadRun(currentId);
       await refreshRuns();
     });
@@ -533,6 +536,13 @@ export function App() {
                 <option value="draft">Draft</option>
                 <option value="looks">Looks</option>
                 <option value="delivery">Delivery</option>
+              </select>
+            </label>
+            <label>
+              <span className="field-label">Render mode</span>
+              <select value={renderMode} onChange={(event) => setRenderMode(event.target.value as RenderMode)}>
+                <option value="full">Full</option>
+                <option value="scenes">Scenes</option>
               </select>
             </label>
           </div>

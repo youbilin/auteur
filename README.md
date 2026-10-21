@@ -5,7 +5,7 @@ A brief becomes a typed `VideoPlan`, then deterministic HTML/GSAP, then an MP4 �
 
 Auteur is built on one observation: Claude Opus 5.5 is not a video model. It writes code that a renderer turns into video. The quality comes from taste, constraints, and iteration — not from asking a model to one-shot a 60-second film. Auteur externalizes those constraints into templates and a critic loop, so a relay with ordinary models can produce work that looks art-directed.
 
-> Status: v2. Local Studio, four scene layouts, Chinese typography, Windows voiceover, advisory VLM review, and render caching. Four real films generated through an OpenAI-compatible relay, all at QA 100/100. Generated ambient score + SFX, normalized to −16 LUFS. Benchmark 01 is a public ToDopa concept study, not a blind Opus parity test.
+> Status: v2. Local Studio, four scene layouts, Chinese typography, Windows voiceover, advisory VLM review, and per-scene incremental rendering. Four real films generated through an OpenAI-compatible relay, all at QA 100/100. Generated ambient score + SFX, normalized to −16 LUFS. Benchmark 01 is a public ToDopa concept study, not a blind Opus parity test.
 
 <p align="center">
   <img src="docs/arc-real.jpg" width="49%" alt="Arc — product launch, dusk" />
@@ -45,6 +45,8 @@ pnpm run studio:serve
 ![Auteur Studio](docs/studio-desktop.jpg)
 
 The Studio is a local web app, not a Tauri shell yet. It binds to `127.0.0.1` and has no auth; do not expose it to a network.
+
+Render mode: **Full** keeps fade/push transitions; **Scenes** caches each scene clip and re-renders only changed scenes, with hard cuts.
 
 ### Layouts
 
@@ -172,11 +174,20 @@ The local example passes 100/100. The score is a guardrail, not a substitute for
 
 ### VLM advisory review
 
-If a vision model is available, `qa` and the Studio send a 2×2 contact sheet to it and ask for a short critique. VLM findings appear in the issue list and rubric (`VLM 74`) but **do not** lower the scored verdict. In the Studio demo the scored QA is 100/100 while the VLM still flags five composition issues; one of those — repeated left-copy/right-panel frames — led to the `data` and `type` layouts.
+If a vision model is available, `qa` and the Studio send a 2×2 contact sheet to it and ask for a short critique. VLM findings appear in the issue list and rubric (`VLM 72` in the Studio demo) but **do not** lower the scored verdict. In the Studio demo the scored QA is 100/100 while the VLM still flags five composition issues; one of those — repeated left-copy/right-panel frames — led to the `data` and `type` layouts.
 
-### Render cache
+### Scene mode and cache
 
-Every render hashes the plan, template version, audio config, and voice file. If the output and hash match, `render` returns immediately; `--force` bypasses it. This does not yet re-render individual scenes, but it removes repeat work while iterating on notes and QA.
+`--scenes` renders each scene as its own clip, caches each clip by a scene/template/quality hash, concatenates the clips with FFmpeg, then mixes the global audio. Editing one scene re-renders only that clip. The tradeoff: scene mode uses hard cuts, not the fade/push transitions of full mode. Full mode stays the default.
+
+```bash
+pnpm run render -- --plan examples/plan-layouts.json --scenes --force
+pnpm run render -- --plan examples/plan-layouts.json --scenes  # cached clips
+```
+
+[Watch the four-layout scene-mode demo](docs/media/layout-demo.mp4) · [QA report](docs/qa/layout-demo.md)
+
+Every full render also hashes the plan, template version, audio config, and voice file. If the output and hash match, `render` returns immediately; `--force` bypasses it.
 
 ### Evidence
 
@@ -184,7 +195,7 @@ Every render hashes the plan, template version, audio config, and voice file. If
 - [Pulse QA report](docs/qa/pulse-real.md) — 100/100, 10.2s
 - [Orbit QA report](docs/qa/orbit-real.md) — 100/100, 12s, 1080×1920
 - [ToDopa QA report](docs/qa/todopa-bench.md) — 100/100, 12s, 1080×1920
-- [Studio demo QA](docs/qa/studio-test.md) — 100/100 scored, VLM 74, five advisory issues
+- [Studio demo QA](docs/qa/studio-test.md) — 100/100 scored, VLM 72, five advisory issues
 - [Fix loop evidence](docs/qa/fix-loop.md) — 95 → 100, one JSON Patch
 
 ### Fix loop demo
@@ -206,7 +217,7 @@ pnpm run fix -- --run overflow-demo
 | `pnpm run studio:build` / `studio:serve` | Build and serve the production Studio on 4310 |
 | `pnpm run doctor` | Check Node/FFmpeg/HyperFrames/Playwright, relay config, model capabilities |
 | `pnpm run plan -- --brief briefs/arc.md --out arc --layout auto` | Brief → `runs/arc/plan.json` |
-| `pnpm run render -- --plan examples/plan-arc.json [--force]` | Plan → composition → MP4 |
+| `pnpm run render -- --plan examples/plan-arc.json [--force] [--scenes]` | Plan → composition → MP4; `--scenes` caches per scene |
 | `pnpm run preview -- --plan examples/plan-arc.json` | Local preview with scrubber |
 | `pnpm run qa -- --run arc [--no-vlm]` | DOM + media + HyperFrames + VLM audit |
 | `pnpm run fix -- --run arc` | Apply deterministic fixes and re-render |
@@ -246,7 +257,7 @@ runs/             generated artifacts (gitignored)
 - The Studio is a local web app, not a Tauri desktop shell. It has no auth and must stay on `127.0.0.1`.
 - Voiceover is Windows SAPI only. Music and SFX are synthesized, not composed tracks; no beat-sync or lip-sync.
 - VLM review is advisory and depends on a vision-capable relay model; it never changes the scored verdict.
-- Render caching is whole-film, not per-scene. There is no timeline editor.
+- Scene mode caches clips and re-renders only changed scenes, but uses hard cuts; full mode keeps transitions. There is no timeline editor.
 - Motion graphics only: UI, typography, charts, product surfaces. No photorealistic footage.
 - The QA score can be gamed by a clean but boring composition. Human review is still required.
 

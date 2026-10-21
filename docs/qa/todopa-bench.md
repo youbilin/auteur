@@ -19,14 +19,23 @@ Video: `runs\todopa-bench\out\video.mp4`
 - DOM: 100
 - Media: 100
 - HyperFrames: 100
+- VLM (advisory): 74
 
-No issues found.
+## Issues
+
+| severity | critic | at | code | message |
+|---|---|---|---|---|
+| major | vlm | 6.00s | DUPLICATE_BEAT | VLM: Frames 02 and 03 repeat the identical headline and subline ('One frame of proof' / 'A single capture, checked on your phone.'); cut one or escalate the copy so each beat advances the argument instead of restating it. |
+| major | vlm | 6.20s | DEAD_SPACE | VLM: Frame 02 is mostly empty field with a small floating card and no compositional anchor; scale the visual up or add a spatial entry/exit so the frame earns its runtime. |
+| minor | vlm | 3.00s | MICRO_TYPE | VLM: Card and phone-mock labels ('NO SKIP BUTTON', 'PROOF CHECK', 'DEEP IN FRAME') sit at body-text size far below the headline scale — bump them up so they read at playback resolution rather than only in a still. |
+| minor | vlm | 10.50s | UNLABELED_CHART | VLM: The ascending green bar chart reads as decorative filler: no axis, unit, or caption ties it to 'streak' or 'proof'. Add a single labeled anchor or replace it with a concrete proof artifact. |
+| minor | vlm | 17.00s | ACCENT_COMPETITION | VLM: '+40 XP' and the reward capsule share the same saturated green, so the payoff numeral and the UI chrome compete equally; dim the capsule or reserve the brightest green for the number alone. |
 
 ## Notes
 
 - lint: <section id="scene-0"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.
 - lint: <section id="scene-1"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.
 - lint: <section id="scene-2"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.
-- VLM review skipped: no registry.
+- VLM: A restrained, brand-consistent dark-green system with confident type hierarchy, but the film stalls on two nearly identical 'One frame of proof' beats and lets large unanchored voids and unreadable micro-text do too much of the work.
 
 Contact sheet: `runs\todopa-bench\frames\contact-sheet.jpg`

@@ -29,4 +29,18 @@ assert.ok(qa.score >= 85, `QA score too low: ${qa.score}`);
 assert.notEqual(qa.verdict, "fail", `QA verdict: ${qa.verdict}`);
 assert.ok(fs.existsSync(path.join("runs", runId, "qa.md")), "qa.md missing");
 
-console.log(`e2e passed: score=${qa.score} verdict=${qa.verdict} issues=${qa.issues.length}`);
+cli(["render", "--plan", "examples/plan-layouts.json", "--quality", "draft", "--scenes", "--force"]);
+cli(["qa", "--run", "layout-demo", "--no-vlm"]);
+const sceneQa = readJson<{ score: number; verdict: string; issues: unknown[] }>(
+  path.join("runs", "layout-demo", "qa.json"),
+);
+assert.ok(sceneQa.score >= 85, `Scene-mode QA score too low: ${sceneQa.score}`);
+assert.notEqual(sceneQa.verdict, "fail", `Scene-mode QA verdict: ${sceneQa.verdict}`);
+assert.ok(
+  fs.existsSync(path.join("runs", "layout-demo", "scenes", "scene-0", "clip.mp4")),
+  "scene clip missing",
+);
+
+console.log(
+  `e2e passed: score=${qa.score} verdict=${qa.verdict} issues=${qa.issues.length} sceneScore=${sceneQa.score}`,
+);

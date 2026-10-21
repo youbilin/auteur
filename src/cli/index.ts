@@ -156,8 +156,16 @@ function renderCommand(program: Command) {
     .option("--run <id>", "existing run id")
     .option("--quality <quality>", "draft, looks, or delivery", "looks")
     .option("--force", "ignore the render cache")
+    .option("--scenes", "render scenes independently and reuse unchanged clips")
     .option("--no-render", "only write the composition HTML")
-    .action((options: { plan?: string; run?: string; quality: string; force?: boolean; render?: boolean }) => {
+    .action((options: {
+      plan?: string;
+      run?: string;
+      quality: string;
+      force?: boolean;
+      scenes?: boolean;
+      render?: boolean;
+    }) => {
       const quality = validateQuality(options.quality);
       let plan: VideoPlan;
       let runId: string;
@@ -176,7 +184,11 @@ function renderCommand(program: Command) {
         log.info(`Composition: ${artifacts.htmlPath}`);
         return;
       }
-      renderRun(runId, plan, { quality, force: options.force });
+      renderRun(runId, plan, {
+        quality,
+        force: options.force,
+        ...(options.scenes ? { sceneMode: true } : {}),
+      });
     });
 }
 
@@ -246,9 +258,12 @@ function fixCommand(program: Command) {
     .description("Apply deterministic fixes from qa.json and re-render.")
     .requiredOption("--run <id>", "run id")
     .option("--quality <quality>", "draft, looks, or delivery", "looks")
-    .action(async (options: { run: string; quality: string }) => {
+    .option("--scenes", "render the fixed film scene by scene")
+    .action(async (options: { run: string; quality: string; scenes?: boolean }) => {
       const runId = slugify(options.run);
-      const result = await runFix(runId, readRunPlan(runId), validateQuality(options.quality));
+      const result = await runFix(runId, readRunPlan(runId), validateQuality(options.quality), {
+        ...(options.scenes ? { sceneMode: true } : {}),
+      });
       if (result) log.info(`Fixed video: ${result.videoAfter}`);
     });
 }
@@ -263,6 +278,7 @@ function makeCommand(program: Command) {
     .option("--layout <layout>", "device, data, type, hook, or auto", "auto")
     .option("--quality <quality>", "draft, looks, or delivery", "looks")
     .option("--force", "ignore the render cache")
+    .option("--scenes", "render scenes independently and reuse unchanged clips")
     .action(async (options: {
       brief: string;
       out?: string;
@@ -270,6 +286,7 @@ function makeCommand(program: Command) {
       layout: string;
       quality: string;
       force?: boolean;
+      scenes?: boolean;
     }) => {
       loadEnvLocal(PROJECT_ROOT);
       const brief = fs.readFileSync(path.resolve(PROJECT_ROOT, options.brief), "utf8");
@@ -282,6 +299,7 @@ function makeCommand(program: Command) {
         quality: validateQuality(options.quality),
         layout: options.layout,
         force: options.force,
+        ...(options.scenes ? { sceneMode: true } : {}),
       });
       log.info(`Done. Score ${result.report.score}/100 · ${result.report.verdict}`);
       log.info(`Video: ${result.video}`);

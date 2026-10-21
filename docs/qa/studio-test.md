@@ -19,23 +19,23 @@ Video: `runs\studio-test\out\video.mp4`
 - DOM: 100
 - Media: 100
 - HyperFrames: 100
-- VLM (advisory): 74
+- VLM (advisory): 72
 
 ## Issues
 
 | severity | critic | at | code | message |
 |---|---|---|---|---|
-| major | vlm | 0.00s | ui_legibility | VLM: The embedded product panels are extremely low-contrast and small in frame; raise panel contrast and scale key UI states so viewers can actually read the release and preview details. |
-| minor | vlm | 0.00s | repeated_frame | VLM: The top-right and bottom-left frames repeat the same headline, layout, and Preview build panel with little visible state change; make the second frame show a clearly different build state or cut it. |
-| minor | vlm | 0.00s | empty_space | VLM: Large unused dark areas in the right and lower frames weaken composition; tighten framing or add purposeful product evidence so the negative space feels directed rather than vacant. |
-| minor | vlm | 0.00s | decorative_microtype | VLM: Corner labels and sidebar microcopy are too small to read at normal playback size and read as decorative filler; either increase legibility or remove them. |
-| minor | vlm | 0.00s | generic_copy | VLM: The headline copy is smooth but interchangeable with many developer-tool films; ground the language in a more specific, ownable product moment. |
+| major | vlm | 5.20s | redundant_frames | VLM: Frames 04 and 05 repeat the same 'See the change before it ships' headline and the same 'Preview build' panel almost identically; cut or differentiate one so screen time buys new information instead of a re-read. |
+| major | vlm | 0.00s | low_contrast_ui | VLM: The product surface is rendered so dim against the near-black background that the 'Release 2.4' card and especially the 'Preview build' panel read as gray texture, not UI. Lift panel fill or add a soft rim light so the interface is legible at a glance. |
+| minor | vlm | 5.20s | nested_panel_dimming | VLM: Inside the 'Preview build' card the secondary rows/labels drop below comfortable contrast; keep the card dim but raise inner text value so the preview still communicates content rather than a blur. |
+| minor | vlm | 6.50s | type_only_frame | VLM: The closing frame is pure headline with no product evidence, so the film ends on a promise rather than a payoff; let the 'ship it, quietly' beat be accompanied by even a minimal confirmation/moment of the interface. |
+| minor | vlm | 0.00s | microtext_illegible | VLM: Corner metadata and caption rows are set at a size and weight that won't survive compression or small screens; either bump them one step or accept them as texture and remove the text entirely. |
 
 ## Notes
 
 - lint: <section id="scene-0"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.
 - lint: <section id="scene-1"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.
 - lint: <section id="scene-2"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.
-- VLM: Polished dark-mode typography and consistent framing, but the film leans on a familiar minimal SaaS look and the product UI itself is too faint and repetitive to carry the story.
+- VLM: A restrained, cohesive dark-mode system with confident editorial typography, but it leans so hard on negative space and low-contrast UI that the product itself goes nearly invisible, and two of the four frames are near-duplicates.
 
 Contact sheet: `runs\studio-test\frames\contact-sheet.jpg`

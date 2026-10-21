@@ -1,7 +1,7 @@
 import type { SceneSpec, UiBlock, VideoPlan } from "../../plans/schema.js";
 import type { LookTokens, Tokens } from "../tokens.js";
 
-export const TEMPLATE_VERSION = "6";
+export const TEMPLATE_VERSION = "7";
 
 export interface TemplateAssets {
   gsapJs: string;
@@ -421,6 +421,8 @@ function buildCss(plan: VideoPlan, tokens: Tokens, look: LookTokens): string {
       background: var(--accent);
       transform-origin: left center;
     }
+    .scene-mode .progress,
+    .scene-mode .scene-index { display: none; }
 
     .scene { position: absolute; inset: 0; z-index: 2; }
     .scene-inner { position: absolute; inset: 0; }
@@ -950,7 +952,7 @@ function buildCss(plan: VideoPlan, tokens: Tokens, look: LookTokens): string {
   `;
 }
 
-function buildScript(plan: VideoPlan, meta: AuteurMeta): string {
+function buildScript(plan: VideoPlan, meta: AuteurMeta, sceneMode = false): string {
   const totalSeconds = plan.durationMs / 1000;
   const visualScenes = plan.scenes.filter(
     (scene) => scene.layout === "device" || scene.layout === "data",
@@ -968,7 +970,7 @@ function buildScript(plan: VideoPlan, meta: AuteurMeta): string {
 
   const lines: string[] = [];
   lines.push(`const tl = gsap.timeline({ paused: true });`);
-  lines.push(`gsap.set(".scene-inner", { opacity: 0 });`);
+  lines.push(`gsap.set(".scene-inner", { opacity: ${sceneMode ? 1 : 0} });`);
   lines.push(`gsap.set(".copy .anim", { opacity: 0, y: 22 });`);
   if (visualScenes.length > 0) lines.push(`gsap.set(".ui-block", { opacity: 0, y: 16 });`);
   if (anyCards) lines.push(`gsap.set(".ui-card", { opacity: 0, y: 14 });`);
@@ -990,13 +992,15 @@ function buildScript(plan: VideoPlan, meta: AuteurMeta): string {
     const hasList = visual && scene.screen.blocks.some((block) => block.kind === "list");
     const hasNote = scene.layout !== "device" && scene.callouts.length > 0;
 
-    lines.push(
-      `tl.fromTo("${selector} .scene-inner", { opacity: 0, x: ${push ? 44 : 0}, y: ${push ? 0 : 16} }, { opacity: 1, x: 0, y: 0, duration: 0.46, ease: "power3.out" }, ${start.toFixed(3)});`,
-    );
-    if (index < plan.scenes.length - 1) {
+    if (!sceneMode) {
       lines.push(
-        `tl.to("${selector} .scene-inner", { opacity: 0, x: ${push ? -30 : 0}, y: ${push ? 0 : -12}, duration: 0.32, ease: "power2.in" }, ${(end - 0.32).toFixed(3)});`,
+        `tl.fromTo("${selector} .scene-inner", { opacity: 0, x: ${push ? 44 : 0}, y: ${push ? 0 : 16} }, { opacity: 1, x: 0, y: 0, duration: 0.46, ease: "power3.out" }, ${start.toFixed(3)});`,
       );
+      if (index < plan.scenes.length - 1) {
+        lines.push(
+          `tl.to("${selector} .scene-inner", { opacity: 0, x: ${push ? -30 : 0}, y: ${push ? 0 : -12}, duration: 0.32, ease: "power2.in" }, ${(end - 0.32).toFixed(3)});`,
+        );
+      }
     }
     lines.push(
       `tl.to("${selector} .copy .anim", { opacity: 1, y: 0, duration: 0.56, stagger: 0.07, ease: "power3.out" }, ${(start + 0.08).toFixed(3)});`,
@@ -1142,7 +1146,16 @@ function buildScript(plan: VideoPlan, meta: AuteurMeta): string {
   `;
 }
 
-export function renderProductUi(plan: VideoPlan, tokens: Tokens, assets: TemplateAssets): string {
+export interface ProductUiRenderOptions {
+  sceneMode?: boolean;
+}
+
+export function renderProductUi(
+  plan: VideoPlan,
+  tokens: Tokens,
+  assets: TemplateAssets,
+  options: ProductUiRenderOptions = {},
+): string {
   const look = tokens.looks[plan.brand.look];
   const ratioClass = plan.ratio === "16:9" ? "ratio-16x9" : "ratio-9x16";
   const meta: AuteurMeta = {
@@ -1182,7 +1195,7 @@ export function renderProductUi(plan: VideoPlan, tokens: Tokens, assets: Templat
   const scenes = plan.scenes
     .map((scene, index) => renderScene(scene, plan, index))
     .join("\n");
-  const script = buildScript(plan, meta);
+  const script = buildScript(plan, meta, Boolean(options.sceneMode));
   const cjkText = [
     plan.brand.name,
     plan.brand.tagline ?? "",
@@ -1210,7 +1223,7 @@ export function renderProductUi(plan: VideoPlan, tokens: Tokens, assets: Templat
   <style>${css}</style>
 </head>
 <body>
-  <div id="root" class="frame look-${plan.brand.look} ${ratioClass}${isCjk ? " lang-zh" : ""}" data-composition-id="main" data-start="0" data-duration="${seconds(plan.durationMs)}" data-fps="${plan.fps}" data-width="${plan.width}" data-height="${plan.height}">
+  <div id="root" class="frame look-${plan.brand.look} ${ratioClass}${isCjk ? " lang-zh" : ""}${options.sceneMode ? " scene-mode" : ""}" data-composition-id="main" data-start="0" data-duration="${seconds(plan.durationMs)}" data-fps="${plan.fps}" data-width="${plan.width}" data-height="${plan.height}">
     <div class="backdrop"></div>
     <div class="grain"></div>
     <div class="vignette"></div>

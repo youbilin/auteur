@@ -341,10 +341,6 @@ button {
   min-width: 0;
 }
 
-.field-grid label:last-child {
-  grid-column: 1 / -1;
-}
-
 .field-label {
   color: var(--faint);
   font-size: 9px;
@@ -1121,9 +1117,6 @@ select {
   }
   .field-grid {
     grid-template-columns: 1fr;
-  }
-  .field-grid label:last-child {
-    grid-column: auto;
   }
   .action-row {
     grid-template-columns: repeat(3, 1fr);

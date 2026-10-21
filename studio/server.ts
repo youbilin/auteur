@@ -391,6 +391,7 @@ function routeApi(req: http.IncomingMessage, res: http.ServerResponse, url: URL)
         const output = renderRun(runId, plan, {
           quality: validateQuality(String(body.quality ?? "looks")),
           force: Boolean(body.force),
+          ...(body.mode === "scenes" ? { sceneMode: true } : {}),
         });
         sendJson(res, 200, { ok: true, video: output, run: summarizeRun(runId) });
         return;
@@ -411,7 +412,12 @@ function routeApi(req: http.IncomingMessage, res: http.ServerResponse, url: URL)
       }
 
       if (action === "fix") {
-        const result = await runFix(runId, readRunPlan(runId), validateQuality(String(body.quality ?? "looks")));
+        const result = await runFix(
+          runId,
+          readRunPlan(runId),
+          validateQuality(String(body.quality ?? "looks")),
+          { ...(body.mode === "scenes" ? { sceneMode: true } : {}) },
+        );
         sendJson(res, 200, {
           ok: true,
           result,
@@ -442,6 +448,7 @@ function routeApi(req: http.IncomingMessage, res: http.ServerResponse, url: URL)
           quality: validateQuality(String(body.quality ?? "looks")),
           layout: String(body.layout ?? "auto"),
           force: Boolean(body.force),
+          ...(body.mode === "scenes" ? { sceneMode: true } : {}),
         });
         sendJson(res, 200, { ok: true, run: summarizeRun(id), qa: result.report, video: result.video });
         return;

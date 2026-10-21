@@ -1,10 +1,11 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { attachAudio, loadAudioConfig } from "../audio/mix.js";
 import { synthesizeVoice } from "../audio/tts.js";
 import { TEMPLATE_VERSION } from "../templates/product-ui/template.js";
-import { writeComposition } from "../compose/html.js";
+import { writeComposition, writeCompositionAt } from "../compose/html.js";
 import { log } from "../core/log.js";
 import {
   PROJECT_ROOT,
@@ -75,6 +76,7 @@ function renderHash(
   hash.update(`template:${TEMPLATE_VERSION}`);
   hash.update(`quality:${options.quality}`);
   hash.update(`fixed:${Boolean(options.fixed)}`);
+  hash.update(`sceneMode:${Boolean(options.sceneMode)}`);
   hash.update(JSON.stringify(loadAudioConfig()));
   if (fs.existsSync(voiceFile)) {
     const stat = fs.statSync(voiceFile);
@@ -87,6 +89,82 @@ export interface RenderRunOptions {
   quality: Quality;
   fixed?: boolean;
   force?: boolean;
+  sceneMode?: boolean;
+}
+
+function scenePlan(plan: VideoPlan, sceneIndex: number): VideoPlan {
+  const scene = plan.scenes[sceneIndex];
+  if (!scene) throw new Error(`Scene ${sceneIndex} does not exist`);
+  return {
+    ...plan,
+    id: `${plan.id}-scene-${sceneIndex + 1}`,
+    durationMs: scene.durationMs,
+    scenes: [{ ...scene, startMs: 0 }],
+  };
+}
+
+function renderSceneClips(
+  runId: string,
+  plan: VideoPlan,
+  quality: Quality,
+  force = false,
+): string {
+  const root = ensureDir(path.join(runDir(runId), "scenes"));
+  const clips: string[] = [];
+
+  for (const [index, scene] of plan.scenes.entries()) {
+    const sceneDir = ensureDir(path.join(root, `scene-${index}`));
+    const clip = path.join(sceneDir, "clip.mp4");
+    const hashFile = path.join(sceneDir, "scene.hash");
+    const tokensFile = path.join(PROJECT_ROOT, "config", "tokens.base.json");
+    const tokens = fs.existsSync(tokensFile) ? fs.readFileSync(tokensFile, "utf8") : "";
+    const hash = crypto
+      .createHash("sha256")
+      .update(JSON.stringify({ scene, brand: plan.brand, width: plan.width, height: plan.height, ratio: plan.ratio }))
+      .update(`template:${TEMPLATE_VERSION}`)
+      .update(`tokens:${tokens}`)
+      .update(`quality:${quality}`)
+      .digest("hex")
+      .slice(0, 24);
+
+    if (!force && fs.existsSync(clip) && fs.existsSync(hashFile) && fs.readFileSync(hashFile, "utf8").trim() === hash) {
+      log.info(`Scene ${index + 1}/${plan.scenes.length} cache hit`);
+      clips.push(clip);
+      continue;
+    }
+
+    log.info(`Rendering scene ${index + 1}/${plan.scenes.length}`);
+    const single = scenePlan(plan, index);
+    const composition = writeCompositionAt(path.join(sceneDir, "composition"), single, {
+      sceneMode: true,
+    });
+    renderWithHyperFrames({
+      compositionDir: composition.dir,
+      outFile: clip,
+      fps: plan.fps,
+      width: plan.width,
+      height: plan.height,
+      quality,
+    });
+    fs.writeFileSync(hashFile, hash, "utf8");
+    clips.push(clip);
+  }
+
+  const concatFile = path.join(root, "concat.txt");
+  const lines = clips.map(
+    (clip) => `file '${clip.replace(/\\/g, "/").replace(/'/g, "'\\''")}'`,
+  );
+  fs.writeFileSync(concatFile, `${lines.join("\n")}\n`, "utf8");
+  const assembled = path.join(root, "assembled.mp4");
+  const result = spawnSync(
+    "ffmpeg",
+    ["-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", concatFile, "-c", "copy", assembled],
+    { encoding: "utf8", maxBuffer: 20 * 1024 * 1024 },
+  );
+  if (result.status !== 0) {
+    throw new Error(`Scene concat failed: ${(result.stderr ?? "").slice(-1000)}`);
+  }
+  return assembled;
 }
 
 export function renderRun(
@@ -106,16 +184,31 @@ export function renderRun(
     }
   }
 
-  const artifacts = writeComposition(runId, plan);
   const silent = output.replace(/\.mp4$/, ".silent.mp4");
-  const result = renderWithHyperFrames({
-    compositionDir: artifacts.dir,
-    outFile: silent,
-    fps: plan.fps,
-    width: plan.width,
-    height: plan.height,
-    quality: options.quality,
-  });
+  let result: Awaited<ReturnType<typeof renderWithHyperFrames>>;
+  let composition: string;
+  let html: string;
+
+  if (options.sceneMode) {
+    log.info("Scene mode: rendering scenes independently and concatenating");
+    const assembled = renderSceneClips(runId, plan, options.quality, options.force);
+    fs.copyFileSync(assembled, silent);
+    result = { outFile: silent, tool: "hyperframes", stdoutTail: "scene concat" };
+    composition = path.join(runDir(runId), "scenes");
+    html = "";
+  } else {
+    const artifacts = writeComposition(runId, plan);
+    result = renderWithHyperFrames({
+      compositionDir: artifacts.dir,
+      outFile: silent,
+      fps: plan.fps,
+      width: plan.width,
+      height: plan.height,
+      quality: options.quality,
+    });
+    composition = artifacts.dir;
+    html = artifacts.htmlPath;
+  }
 
   let audio:
     | { attached: true; events: number; targetLufs: number }
@@ -156,8 +249,9 @@ export function renderRun(
     audio,
     hash,
     cached: false,
-    composition: artifacts.dir,
-    html: artifacts.htmlPath,
+    mode: options.sceneMode ? "scenes" : "full",
+    composition,
+    html,
   });
   log.info(`Video: ${output}`);
   return output;
@@ -234,7 +328,10 @@ export async function runFix(
   runId: string,
   plan: VideoPlan,
   quality: Quality,
-  options: { registry?: ReturnType<typeof buildRegistry> } = {},
+  options: {
+    registry?: ReturnType<typeof buildRegistry>;
+    sceneMode?: boolean;
+  } = {},
 ): Promise<FixRunResult | null> {
   const qaFile = path.join(runDir(runId), "qa.json");
   if (!fs.existsSync(qaFile)) throw new Error(`No qa.json in ${runDir(runId)}. Run QA first.`);
@@ -262,7 +359,11 @@ export async function runFix(
   });
   log.info(`Applied ${fixed.patches.length} patch(es); re-rendering.`);
 
-  const output = renderRun(runId, fixed.plan, { quality, fixed: true });
+  const output = renderRun(runId, fixed.plan, {
+    quality,
+    fixed: true,
+    ...(options.sceneMode ? { sceneMode: true } : {}),
+  });
   const after = await reviewVideo(runId, fixed.plan, output, options);
   const fixFile = path.join(runDir(runId), "fix.json");
   const current = readJson<Record<string, unknown>>(fixFile);
@@ -328,6 +429,7 @@ export interface MakeVideoOptions {
   quality: Quality;
   layout?: string;
   force?: boolean;
+  sceneMode?: boolean;
   registry?: ReturnType<typeof buildRegistry>;
 }
 
@@ -349,12 +451,16 @@ export async function makeVideo(options: MakeVideoOptions): Promise<MakeVideoRes
   const video = renderRun(options.runId, plan, {
     quality: options.quality,
     force: options.force,
+    ...(options.sceneMode ? { sceneMode: true } : {}),
   });
   let report = await reviewVideo(options.runId, plan, video, { registry });
   let finalVideo = video;
   let fixed = false;
   if (report.verdict !== "pass") {
-    const result = await runFix(options.runId, plan, options.quality, { registry });
+    const result = await runFix(options.runId, plan, options.quality, {
+      registry,
+      ...(options.sceneMode ? { sceneMode: true } : {}),
+    });
     if (result) {
       report = result.report;
       finalVideo = result.videoAfter;

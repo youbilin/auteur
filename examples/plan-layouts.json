@@ -21,7 +21,10 @@
       "durationMs": 3000,
       "kind": "device-ui",
       "layout": "device",
-      "device": { "model": "laptop", "theme": "dark" },
+      "device": {
+        "model": "laptop",
+        "theme": "dark"
+      },
       "copy": {
         "headline": "Release day, without the noise",
         "sub": "One calm workspace for every change."
@@ -38,19 +41,42 @@
           {
             "kind": "cards",
             "items": [
-              { "title": "Deployments", "body": "Three pipelines green", "stat": "03" },
-              { "title": "Rollbacks", "body": "One-click safety", "stat": "00" },
-              { "title": "Signals", "body": "No regressions", "stat": "12" }
+              {
+                "title": "Deployments",
+                "body": "Three pipelines green",
+                "stat": "03"
+              },
+              {
+                "title": "Rollbacks",
+                "body": "One-click safety",
+                "stat": "00"
+              },
+              {
+                "title": "Signals",
+                "body": "No regressions",
+                "stat": "12"
+              }
             ]
           }
         ]
       },
       "callouts": [],
       "camera": [
-        { "atMs": 0, "scale": 1.02, "focus": "screen" },
-        { "atMs": 1000, "scale": 1.08, "focus": "screen" }
+        {
+          "atMs": 0,
+          "scale": 1.02,
+          "focus": "screen"
+        },
+        {
+          "atMs": 1000,
+          "scale": 1.08,
+          "focus": "screen"
+        }
       ],
-      "transitionIn": { "type": "fade", "durationMs": 300 }
+      "transitionIn": {
+        "type": "fade",
+        "durationMs": 300
+      }
     },
     {
       "id": "scene-2",
@@ -58,7 +84,10 @@
       "durationMs": 3000,
       "kind": "device-ui",
       "layout": "data",
-      "device": { "model": "laptop", "theme": "dark" },
+      "device": {
+        "model": "laptop",
+        "theme": "dark"
+      },
       "copy": {
         "headline": "Every signal in one view",
         "sub": "Build time, risk, and coverage together."
@@ -75,7 +104,16 @@
           {
             "kind": "chart",
             "label": "Build time",
-            "bars": [0.32, 0.4, 0.48, 0.36, 0.44, 0.52, 0.46, 0.3],
+            "bars": [
+              0.32,
+              0.4,
+              0.48,
+              0.36,
+              0.44,
+              0.52,
+              0.46,
+              0.3
+            ],
             "valueLabel": "18s"
           },
           {
@@ -97,10 +135,21 @@
         }
       ],
       "camera": [
-        { "atMs": 0, "scale": 1.01, "focus": "screen" },
-        { "atMs": 900, "scale": 1.08, "focus": "screen" }
+        {
+          "atMs": 0,
+          "scale": 1.01,
+          "focus": "screen"
+        },
+        {
+          "atMs": 900,
+          "scale": 1.08,
+          "focus": "screen"
+        }
       ],
-      "transitionIn": { "type": "push", "durationMs": 320 }
+      "transitionIn": {
+        "type": "push",
+        "durationMs": 320
+      }
     },
     {
       "id": "scene-3",
@@ -108,14 +157,22 @@
       "durationMs": 3000,
       "kind": "device-ui",
       "layout": "type",
-      "device": { "model": "laptop", "theme": "dark" },
+      "device": {
+        "model": "laptop",
+        "theme": "dark"
+      },
       "copy": {
         "headline": "Ship with confidence",
         "sub": "The release cockpit for calm teams."
       },
       "screen": {
         "appName": "Arc",
-        "blocks": [{ "kind": "header", "text": "Ready" }]
+        "blocks": [
+          {
+            "kind": "header",
+            "text": "Ready"
+          }
+        ]
       },
       "callouts": [
         {
@@ -127,8 +184,17 @@
           "exitMs": 2600
         }
       ],
-      "camera": [{ "atMs": 0, "scale": 1, "focus": "screen" }],
-      "transitionIn": { "type": "fade", "durationMs": 300 }
+      "camera": [
+        {
+          "atMs": 0,
+          "scale": 1,
+          "focus": "screen"
+        }
+      ],
+      "transitionIn": {
+        "type": "fade",
+        "durationMs": 300
+      }
     },
     {
       "id": "scene-4",
@@ -136,7 +202,10 @@
       "durationMs": 3000,
       "kind": "device-ui",
       "layout": "hook",
-      "device": { "model": "laptop", "theme": "dark" },
+      "device": {
+        "model": "laptop",
+        "theme": "dark"
+      },
       "copy": {
         "headline": "Start before you feel ready",
         "sub": "A streak that rewards the first step."
@@ -162,8 +231,17 @@
           "exitMs": 2600
         }
       ],
-      "camera": [{ "atMs": 0, "scale": 1, "focus": "screen" }],
-      "transitionIn": { "type": "fade", "durationMs": 300 }
+      "camera": [
+        {
+          "atMs": 0,
+          "scale": 1,
+          "focus": "screen"
+        }
+      ],
+      "transitionIn": {
+        "type": "fade",
+        "durationMs": 300
+      }
     }
   ]
 }

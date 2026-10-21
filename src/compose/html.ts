@@ -5,6 +5,7 @@ import type { VideoPlan } from "../plans/schema.js";
 import { loadTokens } from "../templates/tokens.js";
 import {
   renderProductUi,
+  type ProductUiRenderOptions,
   type TemplateAssets,
 } from "../templates/product-ui/template.js";
 
@@ -51,8 +52,11 @@ function loadAssets(): TemplateAssets {
   return cachedAssets;
 }
 
-export function buildCompositionHtml(plan: VideoPlan): string {
-  return renderProductUi(plan, loadTokens(), loadAssets());
+export function buildCompositionHtml(
+  plan: VideoPlan,
+  options: ProductUiRenderOptions = {},
+): string {
+  return renderProductUi(plan, loadTokens(), loadAssets(), options);
 }
 
 export interface CompositionArtifacts {
@@ -60,11 +64,15 @@ export interface CompositionArtifacts {
   htmlPath: string;
 }
 
-export function writeComposition(runId: string, plan: VideoPlan): CompositionArtifacts {
-  const dir = ensureDir(compositionDir(runId));
+export function writeCompositionAt(
+  dir: string,
+  plan: VideoPlan,
+  options: ProductUiRenderOptions = {},
+): CompositionArtifacts {
+  ensureDir(dir);
   const htmlPath = path.join(dir, "index.html");
   const assets = loadAssets();
-  fs.writeFileSync(htmlPath, renderProductUi(plan, loadTokens(), assets), "utf8");
+  fs.writeFileSync(htmlPath, renderProductUi(plan, loadTokens(), assets, options), "utf8");
   fs.writeFileSync(path.join(dir, "gsap.min.js"), assets.gsapJs, "utf8");
 
   writeJson(path.join(dir, "hyperframes.json"), {
@@ -79,13 +87,13 @@ export function writeComposition(runId: string, plan: VideoPlan): CompositionArt
   });
 
   writeJson(path.join(dir, "package.json"), {
-    name: `auteur-${runId}`,
+    name: `auteur-${plan.id}`,
     private: true,
     type: "module",
   });
 
   writeJson(path.join(dir, "meta.json"), {
-    id: runId,
+    id: plan.id,
     name: plan.brand.name,
     width: plan.width,
     height: plan.height,
@@ -94,4 +102,12 @@ export function writeComposition(runId: string, plan: VideoPlan): CompositionArt
   });
 
   return { dir, htmlPath };
+}
+
+export function writeComposition(
+  runId: string,
+  plan: VideoPlan,
+  options: ProductUiRenderOptions = {},
+): CompositionArtifacts {
+  return writeCompositionAt(compositionDir(runId), plan, options);
 }

@@ -57,7 +57,7 @@ export async function reviewWithVlm(
         ],
       },
     ],
-    { temperature: 0.2, maxTokens: 3000 },
+    { temperature: 0.2, maxTokens: 3000, responseFormat: true },
   );
   if (!response) {
     return { issues: [], notes: ["VLM review skipped: no vision-capable model responded."] };
