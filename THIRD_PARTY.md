@@ -15,6 +15,9 @@ Auteur's own source is MIT-licensed. Runtime dependencies keep their own license
 | [React](https://github.com/facebook/react) | MIT | Studio UI |
 | [Vite](https://github.com/vitejs/vite) | MIT | Studio build |
 | [Lucide](https://github.com/lucide-icons/lucide) | ISC | Studio icons |
+| [Tauri](https://github.com/tauri-apps/tauri) | MIT OR Apache-2.0 | Desktop launcher |
+| [WebView2](https://learn.microsoft.com/microsoft-edge/webview2/) | Microsoft proprietary | Windows runtime; not bundled |
+| [NSIS](https://nsis.sourceforge.io/) | zlib/libpng | Windows installer builder; not bundled |
 
 ## Assets
 

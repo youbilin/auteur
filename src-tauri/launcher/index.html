@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Auteur Studio</title>
+    <style>
+      :root {
+        --bg: #0a0c0f;
+        --panel: #0d1116;
+        --ink: #0b0f14;
+        --text: #e6edf3;
+        --muted: #8b98a7;
+        --faint: #5e6a78;
+        --line: rgba(255, 255, 255, 0.09);
+        --accent: #8bd3ff;
+        --accent-ink: #061018;
+        --fail: #ff6b6b;
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text); }
+      body {
+        font-family: Inter, "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+        font-size: 13px;
+        display: grid;
+        place-items: center;
+        padding: 28px;
+      }
+      .shell { width: min(620px, 100%); }
+      .mark { display: flex; align-items: center; gap: 9px; margin-bottom: 32px; }
+      .mark strong { font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+      .mark span { color: var(--faint); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; }
+      .mark svg { color: var(--accent); }
+      h1 { font-size: 26px; line-height: 1.15; letter-spacing: -.035em; font-weight: 600; margin: 0 0 8px; }
+      .lede { color: var(--muted); font-size: 13px; line-height: 1.55; margin: 0 0 26px; max-width: 500px; }
+      .panel { border-top: 1px solid var(--line); padding-top: 20px; }
+      label { display: block; color: var(--faint); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; margin-bottom: 6px; }
+      input {
+        width: 100%; height: 36px; background: var(--ink); border: 1px solid var(--line);
+        border-radius: 6px; color: var(--text); padding: 0 10px; font: 12.5px 1.4 var(--mono);
+        font-family: ui-monospace, Consolas, monospace;
+      }
+      input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+      .row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+      button {
+        height: 34px; border: 1px solid var(--line); border-radius: 5px; background: #121821;
+        color: var(--text); padding: 0 12px; font: 600 12px/1 inherit; cursor: pointer; white-space: nowrap;
+      }
+      button:hover { border-color: rgba(255,255,255,.2); }
+      button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+      button:disabled { opacity: .45; cursor: not-allowed; }
+      .status { min-height: 18px; margin-top: 14px; font: 10.5px/1.45 ui-monospace, Consolas, monospace; color: var(--muted); }
+      .status.error { color: #ffc0c0; }
+      .status.ok { color: var(--accent); }
+      .requirements {
+        display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0;
+        margin-top: 24px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+      }
+      .requirements div { padding: 10px 12px 10px 0; color: var(--muted); font-size: 10.5px; line-height: 1.4; }
+      .requirements div + div { padding-left: 12px; border-left: 1px solid var(--line); }
+      .requirements strong { display: block; color: var(--text); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 3px; }
+      .fine { color: var(--faint); font-size: 10px; line-height: 1.5; margin-top: 16px; max-width: 560px; }
+      code { font-family: ui-monospace, Consolas, monospace; color: var(--muted); }
+      .hidden { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="mark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+          <path d="M3 9h18M7 5l2-3M12 5l2-3M17 5l2-3"></path>
+        </svg>
+        <strong>Auteur</strong><span>Studio</span>
+      </div>
+
+      <h1>Open your local Studio.</h1>
+      <p class="lede">This lightweight desktop shell starts the Auteur Studio server from an existing project folder. Rendering stays local; no cloud account is involved.</p>
+
+      <div class="panel">
+        <label for="project">Project folder</label>
+        <input id="project" type="text" placeholder="D:\path\to\auteur" spellcheck="false" autocomplete="off" />
+        <div class="row">
+          <button id="start" class="primary" type="button">Start Studio</button>
+          <button id="retry" type="button">Check again</button>
+        </div>
+        <div id="status" class="status">Checking for a running Studio…</div>
+      </div>
+
+      <div class="requirements">
+        <div><strong>Node 22+</strong>Runs the Studio API and pipeline.</div>
+        <div><strong>FFmpeg</strong>Renders and mixes audio.</div>
+        <div><strong>Chrome</strong>HyperFrames capture.</div>
+      </div>
+      <p class="fine">Run <code>pnpm install</code> once in the project folder. This installer does not bundle Node, FFmpeg, Chrome, or the project itself. If the server is already running, the shell opens it directly.</p>
+    </div>
+
+    <script>
+      const tauri = window.__TAURI__;
+      const input = document.getElementById("project");
+      const status = document.getElementById("status");
+      const start = document.getElementById("start");
+      const retry = document.getElementById("retry");
+      let timer = null;
+
+      input.value = localStorage.getItem("auteur.project") || "";
+
+      function setStatus(text, kind = "") {
+        status.textContent = text;
+        status.className = `status ${kind}`.trim();
+      }
+
+      function startClock(label) {
+        const started = Date.now();
+        if (timer) clearInterval(timer);
+        timer = setInterval(() => {
+          setStatus(`${label} · ${Math.floor((Date.now() - started) / 1000)}s`);
+        }, 1000);
+      }
+
+      async function invoke(command, args = {}) {
+        if (!tauri || !tauri.core) {
+          throw new Error("Tauri bridge unavailable. Open this app through the installed Auteur Studio shell.");
+        }
+        return tauri.core.invoke(command, args);
+      }
+
+      async function openExisting() {
+        try {
+          const opened = await invoke("open_existing");
+          if (opened) {
+            setStatus("Studio is already running. Opening…", "ok");
+            return true;
+          }
+          setStatus("No Studio server detected. Enter the project folder.");
+          return false;
+        } catch (error) {
+          setStatus(String(error), "error");
+          return false;
+        }
+      }
+
+      async function boot() {
+        if (await openExisting()) return;
+      }
+
+      start.addEventListener("click", async () => {
+        const project = input.value.trim();
+        if (!project) {
+          setStatus("Enter the Auteur project folder first.", "error");
+          input.focus();
+          return;
+        }
+        localStorage.setItem("auteur.project", project);
+        start.disabled = true;
+        retry.disabled = true;
+        startClock("Starting Studio");
+        try {
+          await invoke("start_studio", { project });
+        } catch (error) {
+          if (timer) clearInterval(timer);
+          setStatus(String(error), "error");
+          start.disabled = false;
+          retry.disabled = false;
+        }
+      });
+
+      retry.addEventListener("click", () => boot());
+
+      boot();
+    </script>
+  </body>
+</html>

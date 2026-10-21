@@ -5,7 +5,7 @@ A brief becomes a typed `VideoPlan`, then deterministic HTML/GSAP, then an MP4 �
 
 Auteur is built on one observation: Claude Opus 5.5 is not a video model. It writes code that a renderer turns into video. The quality comes from taste, constraints, and iteration — not from asking a model to one-shot a 60-second film. Auteur externalizes those constraints into templates and a critic loop, so a relay with ordinary models can produce work that looks art-directed.
 
-> Status: v2. Local Studio, four scene layouts, Chinese typography, Windows voiceover, advisory VLM review, and per-scene incremental rendering. Four real films generated through an OpenAI-compatible relay, all at QA 100/100. Generated ambient score + SFX, normalized to −16 LUFS. Benchmark 01 is a public ToDopa concept study, not a blind Opus parity test.
+> Status: v0.2. Local Studio, a lightweight Windows desktop shell, four scene layouts, Chinese typography, Windows voiceover, advisory VLM review, and per-scene incremental rendering. Four real films generated through an OpenAI-compatible relay, all at QA 100/100. Generated ambient score + SFX, normalized to −16 LUFS. Benchmark 01 is a public ToDopa concept study, not a blind Opus parity test.
 
 <p align="center">
   <img src="docs/arc-real.jpg" width="49%" alt="Arc — product launch, dusk" />
@@ -44,9 +44,23 @@ pnpm run studio:serve
 
 ![Auteur Studio](docs/studio-desktop.jpg)
 
-The Studio is a local web app, not a Tauri shell yet. It binds to `127.0.0.1` and has no auth; do not expose it to a network.
+The Studio is a local web app. It binds to `127.0.0.1` and has no auth; do not expose it to a network.
 
 Render mode: **Full** keeps fade/push transitions; **Scenes** caches each scene clip and re-renders only changed scenes, with hard cuts.
+
+### Desktop shell (Windows, optional)
+
+A lightweight Tauri 2 shell wraps the production Studio. It is a launcher, not a self-contained runtime: it starts `studio/server.ts` from a project folder with the local Node, waits for port 4310, then navigates to it. Closing the window stops the server it started; if port 4310 was already serving, it opens that server and leaves it running.
+
+![Auteur Studio in the desktop shell](docs/media/tauri-studio.png)
+
+```bash
+pnpm install
+pnpm exec tauri build --bundles nsis
+# src-tauri/target/release/bundle/nsis/Auteur Studio_0.2.0_x64-setup.exe
+```
+
+The shell requires Node 22+, FFmpeg, Chrome, `pnpm install` in the target project, and the WebView2 runtime (preinstalled on Windows 10/11). The installer does **not** bundle Node, FFmpeg, Chrome, or the repository, and it is unsigned. Build prerequisites are Tauri's normal Windows toolchain (Microsoft C++ Build Tools + Windows SDK). If the project path contains non-ASCII characters, build from an ASCII path or use the MSVC toolchain; MinGW's `windres` cannot read that icon path.
 
 ### Layouts
 
@@ -108,6 +122,8 @@ The model never writes HTML or CSS. It fills a constrained `VideoPlan`: scenes, 
 - Chrome/Chromium for HyperFrames; Playwright Chromium for DOM audits
 - `pnpm`
 - Windows for local SAPI voiceover (optional; rendering and QA work without it)
+- WebView2 for the desktop shell (preinstalled on Windows 10/11)
+- Microsoft C++ Build Tools + Windows SDK if you build the desktop shell
 
 ## Quickstart (no model required)
 
@@ -222,6 +238,7 @@ pnpm run fix -- --run overflow-demo
 | `pnpm run qa -- --run arc [--no-vlm]` | DOM + media + HyperFrames + VLM audit |
 | `pnpm run fix -- --run arc` | Apply deterministic fixes and re-render |
 | `pnpm run make -- --brief briefs/arc.md --out arc` | Plan → render → QA → fix |
+| `pnpm exec tauri build --bundles nsis` | Build the lightweight Windows shell installer |
 | `pnpm test` | Unit tests: schema, determinism, URL/JSON helpers, fixer, layouts |
 | `pnpm e2e` | Local render + QA assertion |
 
@@ -241,6 +258,7 @@ src/
   fix/            JSON Patch fixer
   pipeline/       reusable plan/render/review/fix pipeline
 studio/           local React + Vite workspace and API
+src-tauri/        lightweight Tauri launcher (Rust + embedded start page)
 design/           UI positioning brief
 bench/            public concept study and media
 docs/             README screenshots, sample MP4s, QA evidence
@@ -254,7 +272,8 @@ runs/             generated artifacts (gitignored)
 
 - Four layouts on one base template, not four independent template files. Layouts share typography and motion.
 - Chinese uses local system fonts (Microsoft YaHei/PingFang/Noto); a bundled CJK subset is not packaged yet.
-- The Studio is a local web app, not a Tauri desktop shell. It has no auth and must stay on `127.0.0.1`.
+- The desktop shell is a launcher, not a standalone app: it does not bundle Node, FFmpeg, Chrome, WebView2, or the project. The installer is unsigned.
+- The Studio has no auth and must stay on `127.0.0.1`.
 - Voiceover is Windows SAPI only. Music and SFX are synthesized, not composed tracks; no beat-sync or lip-sync.
 - VLM review is advisory and depends on a vision-capable relay model; it never changes the scored verdict.
 - Scene mode caches clips and re-renders only changed scenes, but uses hard cuts; full mode keeps transitions. There is no timeline editor.
@@ -263,12 +282,11 @@ runs/             generated artifacts (gitignored)
 
 ## Roadmap
 
-1. Per-scene preview/render and selective re-render, replacing the whole-film cache.
-2. Embedded CJK font subset and brand kit; then more independent templates.
-3. Timeline/scene inspector in the Studio, plus keyboard shortcuts and project folders.
-4. Controlled benchmarks: same prompt and duration when public prompts are available; Code2Video five-axis scoring; cost/time.
-5. Integrations: OpenMontage, Remotion adapter, GitHub Action, `npx` distribution.
-6. Tauri desktop shell, signed installers, and a cross-platform TTS path.
+1. Embedded CJK font subset and brand kit; then more independent templates.
+2. Timeline/scene inspector in the Studio, plus keyboard shortcuts and project folders.
+3. Controlled benchmarks: same prompt and duration when public prompts are available; Code2Video five-axis scoring; cost/time.
+4. Integrations: OpenMontage, Remotion adapter, GitHub Action, `npx` distribution.
+5. Signed installers, auto-update, and a bundled runtime path for the desktop shell; cross-platform TTS.
 
 ## Security
 
@@ -301,3 +319,5 @@ pnpm run make -- --brief briefs/arc.md --out arc
 ```
 
 模型只输出受约束的 `VideoPlan`，不写 HTML/CSS；模板、布局、审片和音频负责质量下限。中文示例见 `examples/plan-zh.json`，混合布局见 `examples/plan-layouts.json`。
+
+桌面壳（可选）：在仓库根目录执行 `pnpm exec tauri build --bundles nsis`，安装包生成在 `src-tauri/target/release/bundle/nsis/`。它是轻量启动器，只负责启动本机已有的项目，需要 Node、FFmpeg、Chrome、WebView2 和已执行 `pnpm install` 的项目目录，不是自带运行时的独立发行版。
